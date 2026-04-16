@@ -36,7 +36,7 @@
 {$DEFINE DEFAULT_FORMAT:=TPTCFormat.Create(32, $00FF0000, $0000FF00, $000000FF)}
 { $DEFINE DEFAULT_FORMAT:=TPTCFormat.Create(24, $00FF0000, $0000FF00, $000000FF)}
 
-procedure VESALogProcedure(const S: string);
+procedure VESALogProcedure(const S: AnsiString);
 begin
   LOG(s);
 end;
@@ -44,10 +44,10 @@ end;
 constructor TVESAConsole.Create;
 begin
   inherited Create;
-  
+
   FTryLFB := true;
   FTryWindowed := true;
-  
+
   vesa.LogProcedure := @VESALogProcedure;
 
   FOpen := False;
@@ -75,7 +75,7 @@ end;
 destructor TVESAConsole.Destroy;
 begin
   Close;
-  
+
   FKeyboard.Free;
   FMouse.Free;
   FEventQueue.Free;
@@ -138,7 +138,7 @@ begin
             FModesN[J].Index := I;
             FModesN[J].SupportsWindowed := true;
           end;
-	  
+
 	  if FTryLFB and SupportsLFB then
 	  begin
 	    if (FTryWindowed and SupportsWindowed) and
@@ -185,7 +185,7 @@ begin
             FModesN[J].SupportsWindowed := FTryWindowed and SupportsWindowed;
             FModesN[J].SupportsLFB := FTryLFB and SupportsLFB;
             Inc(J);
-			
+
             {RGB 332}
             SetLength(FModes, J + 1);
             SetLength(FModesN, J + 1);
@@ -199,10 +199,10 @@ begin
   FModesLast := J;
 end;
 
-procedure TVESAConsole.Configure(const AFileName: string);
+procedure TVESAConsole.Configure(const AFileName: AnsiString);
 var
   F: TextFile;
-  S: string;
+  S: AnsiString;
 begin
   AssignFile(F, AFileName);
   {$push}{$I-}
@@ -258,7 +258,7 @@ begin
   end;
 end;
 
-function TVESAConsole.Option(const AOption: string): Boolean;
+function TVESAConsole.Option(const AOption: AnsiString): Boolean;
 begin
   {...}
   if AOption = 'enable lfb' then
@@ -279,7 +279,7 @@ begin
     Result := true;
     exit;
   end;
-  
+
   if AOption = 'enable windowed framebuffer' then
   begin
     EnableWindowed;
@@ -298,7 +298,7 @@ begin
     Result := true;
     exit;
   end;
-  
+
   if AOption = 'enable dpmi508h' then
   begin
     VESA.TryDPMI508h := true;
@@ -317,7 +317,7 @@ begin
     Result := true;
     exit;
   end;
-  
+
   if AOption = 'enable nearptr' then
   begin
     VESA.TryNearPtr := true;
@@ -336,14 +336,14 @@ begin
     Result := true;
     exit;
   end;
-  
+
   if AOption = 'no8bitdac' then
   begin
     VESA.EightBitDACEnabled := false;
     Result := true;
     exit;
   end;
-  
+
   if AOption = 'enable logging' then
   begin
     LOG_enabled := true;
@@ -452,24 +452,24 @@ begin
   Result := modefound;
 end;
 
-procedure TVESAConsole.Open(const ATitle: string; APages: Integer); overload;
+procedure TVESAConsole.Open(const ATitle: AnsiString; APages: Integer); overload;
 begin
   Open(ATitle, FDefaultFormat, APages);
 end;
 
-procedure TVESAConsole.Open(const ATitle: string; AFormat: IPTCFormat;
+procedure TVESAConsole.Open(const ATitle: AnsiString; AFormat: IPTCFormat;
                             APages: Integer); overload;
 begin
   Open(ATitle, FDefaultWidth, FDefaultHeight, AFormat, APages);
 end;
 
-procedure TVESAConsole.Open(const ATitle: string; AWidth, AHeight: Integer;
+procedure TVESAConsole.Open(const ATitle: AnsiString; AWidth, AHeight: Integer;
                             AFormat: IPTCFormat; APages: Integer); overload;
 begin
   Open(ATitle, TPTCMode.Create(AWidth, AHeight, AFormat), APages);
 end;
 
-procedure TVESAConsole.Open(const ATitle: string; AMode: IPTCMode;
+procedure TVESAConsole.Open(const ATitle: AnsiString; AMode: IPTCMode;
                             APages: Integer); overload;
 
   procedure SetRGB332Palette;
@@ -547,7 +547,7 @@ begin
     if not SetVESAMode(FModesN[ModeFound].Index, false) then
       raise TPTCError.Create('error setting VBE mode');
   end;
-  
+
   FVESACurrentMode := FModesN[ModeFound].Index;
 
   with FModes[FCurrentMode].Format do
@@ -952,17 +952,17 @@ begin
   Result := FModes[FCurrentMode].Format;
 end;
 
-function TVESAConsole.GetName: string;
+function TVESAConsole.GetName: AnsiString;
 begin
   Result := 'VESA';
 end;
 
-function TVESAConsole.GetTitle: string;
+function TVESAConsole.GetTitle: AnsiString;
 begin
   Result := FTitle;
 end;
 
-function TVESAConsole.GetInformation: string;
+function TVESAConsole.GetInformation: AnsiString;
 begin
   Result := FInformation;
 end;

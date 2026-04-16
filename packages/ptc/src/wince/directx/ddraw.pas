@@ -16,15 +16,22 @@
  *  Content:    DirectDraw include file
  *
  ***************************************************************************)
+{$IFNDEF FPC_DOTTEDUNITS}
 unit ddraw;
+{$ENDIF FPC_DOTTEDUNITS}
 
 interface
 
 {$MODE objfpc}{$H+}
 {$PACKRECORDS c}
 
+{$IFDEF FPC_DOTTEDUNITS}
+uses
+  WinApi.Windows;
+{$ELSE FPC_DOTTEDUNITS}
 uses
   Windows;
+{$ENDIF FPC_DOTTEDUNITS}
 
 //#pragma once
 
@@ -36,7 +43,7 @@ uses
 
 
 // Other components use this define to tell if they have the DirectDraw
-// defintitions presents or if they have to re-define stuff.
+// definitions presents or if they have to re-define stuff.
 
 //#define __DDRAW_INCLUDED__
 
@@ -53,7 +60,7 @@ const
   IID_IDirectDrawGammaControl: TGuid = '{69C11C3E-B46B-11D1-AD7A-00C04FC29B4E}';
 
 (*
- * Forward interface declerations
+ * Forward interface declarations
  *)
 
 type
@@ -186,7 +193,7 @@ type
     dwMinOverlayStretch: DWORD;	// minimum overlay stretch factor multiplied by 1000, eg 1000 == 1.0, 1300 == 1.3
     dwMaxOverlayStretch: DWORD;	// maximum overlay stretch factor multiplied by 1000, eg 1000 == 1.0, 1300 == 1.3
 
-    // Miscalenous capabilies
+    // Miscellaneous capabilities
 
     dwMiscCaps: DWORD;
 
@@ -388,7 +395,7 @@ type
 
 
     (*
-     * These elements can be used to identify particular chipsets. Use with extreme caution. 
+     * These elements can be used to identify particular chipsets. Use with extreme caution.
      *   dwVendorId     Identifies the manufacturer. May be zero if unknown.
      *   dwDeviceId     Identifies the type of chipset. May be zero if unknown.
      *   dwSubSysId     Identifies the subsystem, typically this means the particular board. May be zero if unknown.

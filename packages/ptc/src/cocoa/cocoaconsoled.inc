@@ -1,6 +1,6 @@
 {
     This file is part of the PTCPas framebuffer library
-    Copyright (C) 2015 Nikolay Nikolov (nickysn@users.sourceforge.net)
+    Copyright (C) 2015, 2021 Nikolay Nikolov (nickysn@users.sourceforge.net)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -38,7 +38,16 @@ type
   private
     FConsole: TCocoaConsole;
   public
-    function windowShouldClose(sender: id): Boolean;
+    function windowShouldClose(sender: id): ObjCBOOL;
+  end;
+
+  { NSPTCView }
+
+  NSPTCView = objcclass(NSView)
+  private
+    FConsole: TCocoaConsole;
+  public
+    procedure drawRect(dirtyRect: NSRect); override;
   end;
 
   { NSPTCWindow }
@@ -69,7 +78,7 @@ type
 
   TCocoaConsole = class(TPTCOpenGLLessConsole)
   private
-    FTitle: string;
+    FTitle: AnsiString;
     FWidth, FHeight, FPitch: Integer;
     FFormat: IPTCFormat;
     FCopy: TPTCCopy;
@@ -86,7 +95,7 @@ type
     FWindow: NSPTCWindow;
     FImageRep: NSBitmapImageRep;
     FImage: NSImage;
-    FView: NSView;
+    FView: NSPTCView;
 
     class procedure MaybeCreateAutoreleasePool;
 
@@ -97,14 +106,14 @@ type
     function GetFormat: IPTCFormat; override;
 
     function GetPages: Integer; override;
-    function GetName: string; override;
-    function GetTitle: string; override;
-    function GetInformation: string; override;
+    function GetName: AnsiString; override;
+    function GetTitle: AnsiString; override;
+    function GetInformation: AnsiString; override;
 
     function TranslateKeyCode(kcode: cushort): Integer;
 
-    function HandleCocoaKeyEvent(theEvent: NSEvent; const Method: string): Boolean;
-    function HandleCocoaMouseEvent(theEvent: NSEvent; const Method: string): Boolean;
+    function HandleCocoaKeyEvent(theEvent: NSEvent; const Method: AnsiString): Boolean;
+    function HandleCocoaMouseEvent(theEvent: NSEvent; const Method: AnsiString): Boolean;
     function HandleWindowShouldClose(sender: id): Boolean;
     procedure HandleEvents;
 
@@ -142,18 +151,18 @@ type
                     AArea: IPTCArea); override;
     procedure Palette(APalette: IPTCPalette); override;
     procedure Clip(AArea: IPTCArea); override;
-    function Option(const AOption: String): Boolean; override;
+    function Option(const AOption: AnsiString): Boolean; override;
     function Clip: IPTCArea; override;
     function Palette: IPTCPalette; override;
 
-    procedure Configure(const AFileName: String); override;
+    procedure Configure(const AFileName: AnsiString); override;
     function Modes: TPTCModeList; override;
-    procedure Open(const ATitle: string; APages: Integer = 0); overload; override;
-    procedure Open(const ATitle: string; AFormat: IPTCFormat;
+    procedure Open(const ATitle: AnsiString; APages: Integer = 0); overload; override;
+    procedure Open(const ATitle: AnsiString; AFormat: IPTCFormat;
                    APages: Integer = 0); overload; override;
-    procedure Open(const ATitle: string; AWidth, AHeight: Integer;
+    procedure Open(const ATitle: AnsiString; AWidth, AHeight: Integer;
                    AFormat: IPTCFormat; APages: Integer = 0); overload; override;
-    procedure Open(const ATitle: string; AMode: IPTCMode;
+    procedure Open(const ATitle: AnsiString; AMode: IPTCMode;
                    APages: Integer = 0); overload; override;
     procedure Close; override;
 

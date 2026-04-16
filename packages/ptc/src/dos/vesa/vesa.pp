@@ -32,7 +32,9 @@
 {$MODE objfpc}{$H+}
 {$ASMMODE intel}
 
+{$IFNDEF FPC_DOTTEDUNITS}
 unit VESA;
+{$ENDIF FPC_DOTTEDUNITS}
 
 interface
 
@@ -95,7 +97,7 @@ type
     Reserved4: array [1..189] of Byte; {remainder of ModeInfoBlock}
   end;
 
-  TLogProcedure = procedure(const S: string);
+  TLogProcedure = procedure(const S: AnsiString);
 
   TVBEModeMemoryModel =
    (vmmmTextMode,
@@ -137,7 +139,7 @@ type
   TVBEMode = class
   private
     FVBEModeID: DWord;
-    
+
     FSupported: Boolean;
     FSupportsTTY: Boolean;
     FIsColor: Boolean;
@@ -150,7 +152,7 @@ type
     FSupportsTripleBuffering: Boolean;
     FSupportsStereoscopicDisplay: Boolean;
     FSupportsDualDisplayStartAddresses: Boolean;
-    
+
     FXResolution: Integer;
     FYResolution: Integer;
     FXCharSize: Integer;
@@ -219,9 +221,9 @@ type
     property MemoryModel: TVBEModeMemoryModel read FMemoryModel;
 
     property BitsPerPixel: Integer read FBitsPerPixel;
-    
+
     property NumberOfPlanes: Integer read FNumberOfPlanes;
-    
+
     property NumberOfBanks: Integer read FNumberOfBanks;
     property BankSize: Integer read FBankSize;
 
@@ -280,7 +282,7 @@ var
   TryDPMI508h: Boolean = TryDPMI508hDefault;
   TryNearPtr: Boolean = TryNearPtrDefault;
   ScanModesManually: Boolean = ScanModesManuallyDefault;
-  
+
   EightBitDACEnabled: Boolean = true;
 
 procedure InitVESA;
@@ -297,26 +299,31 @@ function LFBNearPtrAccessPtr: Pointer;
 
 implementation
 
+{$IFDEF FPC_DOTTEDUNITS}
+uses
+  DOSApi.GO32;
+{$ELSE FPC_DOTTEDUNITS}
 uses
   go32;
+{$ENDIF FPC_DOTTEDUNITS}
 
 type
   TVBEInfoBlock = packed record
     {VBE 1.0+}
-    VBESignature: array [1..4] of Char; {'VESA'}
+    VBESignature: array [1..4] of AnsiChar; {'VESA'}
     VBEVersion: Word;
-    OemStringPtr: DWord; {VbeFarPtr to OEM string}
+    OemStringPtr: DWord; {VbeFarPtr to OEM AnsiString}
     Capabilities: DWord; {Capabilities of graphics controller}
     VideoModePtr: DWord; {VbeFarPtr to VideoModeList}
     {added for VBE 1.1+}
     TotalMemory: Word; {Number of 64kb memory blocks}
     {added for VBE 2.0+}
     OemSoftwareRev: Word; {VBE implementation Software revision}
-    OemVendorNamePtr: DWord; {VbeFarPtr to Vendor Name string}
-    OemProductNamePtr: DWord; {VbeFarPtr to Product Name string}
-    OemProductRevPtr: DWord; {VbeFarPtr to Product Revision string}
+    OemVendorNamePtr: DWord; {VbeFarPtr to Vendor Name AnsiString}
+    OemProductNamePtr: DWord; {VbeFarPtr to Product Name AnsiString}
+    OemProductRevPtr: DWord; {VbeFarPtr to Product Revision AnsiString}
     Reserved: array [1..222] of Byte; {Reserved for VBE implementation scratch area}
-    OemData: array [1..256] of Char; {Data Area for OEM Strings}
+    OemData: array [1..256] of AnsiChar; {Data Area for OEM Strings}
   end;
   TVideoModeList = array of Word;
 
@@ -329,10 +336,10 @@ var
   SnowyRAMDAC: Boolean;
   StereoSignalingSupport: Boolean;
   StereoSignalingVesaEVC: Boolean;
-  OEMString: string;
-  OEMVendorName: string;
-  OEMProductName: string;
-  OEMProductRev: string;
+  OEMString: AnsiString;
+  OEMVendorName: AnsiString;
+  OEMProductName: AnsiString;
+  OEMProductRev: AnsiString;
   OEMSoftwareRev: Integer;
   CurrentMode: TVBEMode = nil;
 
@@ -365,7 +372,7 @@ var
 
   VESAInit: Boolean;
 
-procedure Debugln(const S: string);
+procedure Debugln(const S: AnsiString);
 begin
   if Assigned(LogProcedure) then
     LogProcedure(S);
@@ -376,22 +383,22 @@ begin
   Debugln('');
 end;
 
-function IntToStr(Value: Integer): string;
+function IntToStr(Value: Integer): AnsiString;
 begin
   System.Str(Value, Result);
 end;
 
-function IntToStr(Value: Int64): string;
+function IntToStr(Value: Int64): AnsiString;
 begin
   System.Str(Value, Result);
 end;
 
-function IntToStr(Value: QWord): string;
+function IntToStr(Value: QWord): AnsiString;
 begin
   System.Str(Value, Result);
 end;
 
-function BoolToStr(Value: Boolean): string;
+function BoolToStr(Value: Boolean): AnsiString;
 begin
   if Value then
     Result := 'TRUE'
@@ -810,10 +817,10 @@ begin
   MakeMask := Mask;
 end;
 
-function GetRMString(SegOfs: DWord): string;
+function GetRMString(SegOfs: DWord): AnsiString;
 var
-  S: string;
-  C: Char;
+  S: AnsiString;
+  C: AnsiChar;
   Seg, Ofs: Word;
 begin
   if SegOfs = 0 then
@@ -925,7 +932,7 @@ begin
     WriteToVideoMemoryLFB(Src, Dest, Size);
     exit;
   end;
-  
+
   WW := Dest div WindowGranularity;
   Dest := Dest mod WindowGranularity;
 {  Writeln(WindowSize);}
@@ -962,7 +969,7 @@ begin
   end;
 end;
 
-function WinAttrib(q: Integer): string;
+function WinAttrib(q: Integer): AnsiString;
 begin
   if (q and 1) <> 0 then
     Result := 'supported'
@@ -974,7 +981,7 @@ begin
     Result := Result + ' writeable';
 end;
 
-function ModeAttrib(AModeAttributes: Integer): string;
+function ModeAttrib(AModeAttributes: Integer): AnsiString;
 begin
   if (AModeAttributes and 1) <> 0 then
     Result := 'supported'
@@ -1019,7 +1026,7 @@ begin
     Result := Result + ' DualDisplayStartAddressSupport';
 end;
 
-function MemoryModelStr(AMemoryModel: Integer): string;
+function MemoryModelStr(AMemoryModel: Integer): AnsiString;
 begin
   case AMemoryModel of
     0: Result := 'Text mode';
@@ -1037,7 +1044,7 @@ begin
   Result := Result + '/' + IntToStr(AMemoryModel);
 end;
 
-function DirectColorModeInfoStr(ADirectColorModeInfo: Integer): string;
+function DirectColorModeInfoStr(ADirectColorModeInfo: Integer): AnsiString;
 begin
   if (ADirectColorModeInfo and 1) <> 0 then
     Result := 'Color_ramp_is_programmable'
@@ -1213,7 +1220,7 @@ begin
     else
     begin
       Debugln('Using the mode list, returned in the VBEInfoBlock');
-      
+
       for I := Low(VideoModeList) to High(VideoModeList) do
       begin
         ModeNumber := VideoModeList[I];
@@ -1277,7 +1284,7 @@ begin
       if not VBEPresent then
         Debugln('VBEInfoBlock returned no ''VESA'' VBESignature. Assuming VBE is not supported.');
     end;
-    
+
     if VBEPresent then
     begin
       VideoMemory := VBEInfoBlock.TotalMemory * 64;
@@ -1375,7 +1382,7 @@ begin
 
   PaddedSize := Size + PhysicalAddressLeftPadding + PhysicalAddressRightPadding;
   Debugln('PaddedSize = ' + IntToStr(PaddedSize));
-  
+
   LFB0508AllocatedMemoryBlock := GetMem(PaddedSize + DPMIPageSize - 1);
   LFB0508MemoryBlockPadding := (PtrUInt(LFB0508AllocatedMemoryBlock) + ___djgpp_base_address) mod DPMIPageSize;
   if LFB0508MemoryBlockPadding <> 0 then
@@ -1393,7 +1400,7 @@ begin
     exit;
   end;
   Debugln('DPMI function 0508h returned success!');
-  
+
   Debugln('Checking page attributes, to see if it really succeeded. (shitty NTVDM reports success, even though it does not support DPMI 0508h, so we need this extra check)');
   MappedPageAttribute := $FFFF;
   MapSuccess := get_page_attributes(___djgpp_memory_handle_list, PtrUInt(LFB0508AllocatedMemoryBlock) + LFB0508MemoryBlockPadding, 1, @MappedPageAttribute);
@@ -1414,7 +1421,7 @@ begin
     LFB0508AllocatedMemoryBlock := nil;
     exit;
   end;
-  
+
   LFB0508MappedVideoBufferStart := LFB0508AllocatedMemoryBlock + LFB0508MemoryBlockPadding + PhysicalAddressLeftPadding;
   LFBPhysicalAddress := PhysicalAddress;
   LFBBufferSize := Size;
@@ -1435,14 +1442,14 @@ begin
   FillWord(SetPageAttributes^, LFB0508NumberOfPagesMapped, %01001);
   UnMapSuccess := set_page_attributes(___djgpp_memory_handle_list, PtrUInt(LFB0508AllocatedMemoryBlock) + LFB0508MemoryBlockPadding, LFB0508NumberOfPagesMapped, SetPageAttributes);
   FreeMem(SetPageAttributes);
-  
+
   if (not UnMapSuccess) or (int31error <> 0) then
   begin
     Debugln('DPMI error $' + HexStr(int31error, 4));
     Result := false;
     exit;
   end;
-  
+
   Debugln('Mapped memory changed back to committed. Now freeing the allocated memory block from the pascal heap.');
   FreeMem(LFB0508AllocatedMemoryBlock);
   LFB0508Mapped := false;
@@ -1535,7 +1542,7 @@ begin
   Debugln('Current CS limit=$' + HexStr(get_segment_limit(get_cs), 8));
   Debugln('Current DS limit=$' + HexStr(CurrentDSLimit, 8));
   Debugln('__crt0_startup_flags=$' + HexStr(__crt0_startup_flags, 2));
-  
+
   if CurrentDSLimit <> $FFFFFFFF then
   begin
     Debugln('Not $FFFFFFFF...');
@@ -1550,7 +1557,7 @@ begin
 
     exit;
   end;
-  
+
   set_segment_limit(___v2prt0_ds_alias, $FFFFFFFF);
 
   __crt0_startup_flags := __crt0_startup_flags or _CRT0_FLAG_NEARPTR;
@@ -1613,7 +1620,7 @@ end;}
 function CreateLFBSegmentSelector: Boolean;
 var
   Selector: Word;
-  
+
   procedure InternalFreeLFBSegmentSelector;
   begin
     if Selector = 0 then
@@ -1636,7 +1643,7 @@ begin
     exit;
   end;
   Debugln('Got selector ' + IntToStr(Selector));
-  
+
   Debugln('Setting selector base address to ' + HexStr(LFB0800LinearAddress, 8));
   set_segment_base_address(Selector, LFB0800LinearAddress);
   if int31error <> 0 then
@@ -1646,7 +1653,7 @@ begin
     InternalFreeLFBSegmentSelector;
     exit;
   end;
-  
+
   Debugln('Setting segment limit to ' + HexStr((LFBBufferSize - 1) or $FFF, 8));
   set_segment_limit(Selector, (LFBBufferSize - 1) or $FFF);
   if int31error <> 0 then
@@ -1710,7 +1717,7 @@ begin
     lReadWindowAddress := VBEModes[M].ReadWindow.Segment shl 4;
     lWriteWindow := VBEModes[M].WriteWindow.WindowID;
     lWriteWindowAddress := VBEModes[M].WriteWindow.Segment shl 4;
-    
+
     lWindowGranularity := VBEModes[M].WriteWindow.Granularity * 1024;
     lWindowSize := VBEModes[M].WriteWindow.Size * 1024;
     lWindowSizeG := lWindowSize div lWindowGranularity;
@@ -1728,7 +1735,7 @@ begin
       if not DPMI508Success then
         Debugln('DPMI 508h mapping failed, will try other methods to map the lfb...');
     end;
-    
+
     if not DPMI508Success then
     begin
       if not MapLFBToLinearSpace0800(VBEModes[M].PhysBasePtr, VideoMemory * 1024) then
@@ -1736,13 +1743,13 @@ begin
         Result := false;
         exit;
       end;
-      
+
       if TryNearPtr then
       begin
         if not EnableNearPtr then
 	  Debugln('Enabling nearptr (aka "Fat DS") mode failed, will try other methods...');
       end;
-      
+
       if not NearPtrEnabled then
       begin
         Debugln('Falling back to far ptr lfb access...');

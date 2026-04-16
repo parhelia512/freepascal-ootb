@@ -61,7 +61,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TX11DGA1Display.Open(ATitle: string; AWidth, AHeight: Integer; AFormat: IPTCFormat; const AOpenGLAttributes: IPTCOpenGLAttributes);
+procedure TX11DGA1Display.Open(ATitle: AnsiString; AWidth, AHeight: Integer; AFormat: IPTCFormat; const AOpenGLAttributes: IPTCOpenGLAttributes);
 var
   vml: PXF86VidModeModeLine;
   dotclock: Integer;
@@ -77,7 +77,7 @@ begin
   FWidth := AWidth;
   FHeight := AHeight;
 
-  { Get all availabe video modes }
+  { Get all available video modes }
   XF86VidModeGetAllModeLines(FDisplay, FScreen, @FModeInfoNum, @FModeInfo);
 
   FPreviousMode := -1;
