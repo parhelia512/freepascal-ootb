@@ -380,7 +380,13 @@ begin
          begin
            i:=Pos(target_info.sharedlibext,S);
            if i>0 then
+
+            {$ifdef openbsd} 
             Delete(S,i,255);
+            {$else}
+            Insert(':',s,1);   // needed for the linker
+            {$endif}
+
            LinkRes.Add('-l'+s);
          end
         else
