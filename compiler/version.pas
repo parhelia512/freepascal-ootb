@@ -29,21 +29,8 @@ interface
        { version string }
        version_nr = '3';
        release_nr = '2';
-       patch_nr   = '4';
-       
-       {$if defined(linux) and defined(cpux86_64)}
-       minorpatch = '_glibc225';
-       {$else}
-       {$if defined(linux) and defined(cpuaarch64)}
-       minorpatch = '_glibc217';
-       {$else}
-       {$if defined(linux) and defined(cpui386)}
-       minorpatch = '_glibc20';
-       {$else}
-       minorpatch = '_ootb';
-       {$endif}
-       {$endif}
-       {$endif}
+       patch_nr   = '3';
+       minorpatch = '';
 
        { word version for ppu file }
        wordversion = ((ord(version_nr)-ord('0')) shl 14)+

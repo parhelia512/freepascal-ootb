@@ -1,6 +1,4 @@
-{$IFNDEF FPC_DOTTEDUNITS}
 unit p_gx;
-{$ENDIF FPC_DOTTEDUNITS}
 
 {$MODE objfpc}
 
@@ -9,13 +7,8 @@ unit p_gx;
 
 interface
 
-{$IFDEF FPC_DOTTEDUNITS}
-uses
-  WinApi.Windows;
-{$ELSE FPC_DOTTEDUNITS}
 uses
   Windows;
-{$ENDIF FPC_DOTTEDUNITS}
 
 const
   GXDLL = 'gx';

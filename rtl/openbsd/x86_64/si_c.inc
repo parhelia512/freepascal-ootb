@@ -16,9 +16,12 @@
 
 {$asmmode gas}
 
+{ External global handle defined in prt0.as }
+var
+  __dso_handle: pointer; external name '__dso_handle';
+
 procedure __init; cdecl; external name '__init';
-procedure c_exit(exit_code: cint); cdecl; noreturn; external name 'exit';  
-procedure c_exit2(exit_code: cint); cdecl; noreturn; external name '_exit';
+procedure c_exit(exit_code: cint); cdecl; noreturn; external name 'exit';
 function _csu_finish(_argv: PPAnsiChar; _envp: PPAnsiChar; _cleanup: TCdeclProcedure): PPPChar; cdecl; external name '_csu_finish';
 
 procedure _FPC_proc___start(argc: LongInt; argv: PPAnsiChar; envp: Pointer; cleanup: TCdeclProcedure); cdecl; forward;
@@ -36,6 +39,15 @@ procedure _FPC_proc_start; assembler; nostackframe; public name '_start'; public
   end;
 
 function _strrchr(str: PAnsiChar; character: LongInt): PAnsiChar; forward;
+
+procedure _csu_abort; cdecl; public name '_csu_abort';
+begin
+  asm
+    // endbr64
+    // Not yet supported by our inline assembler reader
+    int3
+  end;
+end;
 
 procedure _FPC_proc___start(argc: LongInt; argv: PPAnsiChar; envp: Pointer; cleanup: TCdeclProcedure); cdecl;
   var
@@ -70,7 +82,7 @@ procedure _FPC_proc___start(argc: LongInt; argv: PPAnsiChar; envp: Pointer; clea
 
 procedure _FPC_proc_haltproc; cdecl; noreturn; public name '_haltproc';
   begin
-    c_exit2(operatingsystem_result);
+    c_exit(operatingsystem_result);
   end;
 
 function _strrchr(str: PAnsiChar; character: LongInt): PAnsiChar; public name '_strrchr';

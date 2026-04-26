@@ -579,11 +579,11 @@ begin
              While not SharedLibFiles.Empty do
               begin
                 S:=SharedLibFiles.GetFirst;
-                if ((S <> 'c') and (Pos('libc.so',S) = 0)) or reorder then
+                if (s<>'c') or reorder then
                  begin
                    i:=Pos(target_info.sharedlibext,S);
                    if i>0 then
-                   Insert(':',s,1);   // needed for the linker
+                    Delete(S,i,255);
                    Add('-l'+s);
                  end
                 else

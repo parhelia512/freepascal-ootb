@@ -33,22 +33,22 @@
 type
   IPTCConsole = interface(IPTCSurface)
     function GetPages: Integer;
-    function GetName: AnsiString;
-    function GetTitle: AnsiString;
-    function GetInformation: AnsiString;
+    function GetName: string;
+    function GetTitle: string;
+    function GetInformation: string;
 
     function GetOpenGL_Enabled: Boolean;
     procedure SetOpenGL_Enabled(AValue: Boolean);
     function GetOpenGL_Attributes: IPTCOpenGLAttributes;
 
-    procedure Configure(const AFileName: AnsiString);
+    procedure Configure(const AFileName: string);
     function Modes: TPTCModeList;
-    procedure Open(const ATitle: AnsiString; APages: Integer = 0); overload;
-    procedure Open(const ATitle: AnsiString; AFormat: IPTCFormat;
+    procedure Open(const ATitle: string; APages: Integer = 0); overload;
+    procedure Open(const ATitle: string; AFormat: IPTCFormat;
                    APages: Integer = 0); overload;
-    procedure Open(const ATitle: AnsiString; AWidth, AHeight: Integer;
+    procedure Open(const ATitle: string; AWidth, AHeight: Integer;
                    AFormat: IPTCFormat; APages: Integer = 0); overload;
-    procedure Open(const ATitle: AnsiString; AMode: IPTCMode;
+    procedure Open(const ATitle: string; AMode: IPTCMode;
                    APages: Integer = 0); overload;
     procedure Close;
     procedure InternalResize(AWidth, AHeight: Integer);
@@ -74,9 +74,9 @@ type
     function MoveMouseTo(X, Y: Integer): Boolean;
 
     property Pages: Integer read GetPages;
-    property Name: AnsiString read GetName;
-    property Title: AnsiString read GetTitle;
-    property Information: AnsiString read GetInformation;
+    property Name: string read GetName;
+    property Title: string read GetTitle;
+    property Information: string read GetInformation;
 
     { OpenGL support }
     property OpenGL_Enabled: Boolean read GetOpenGL_Enabled write SetOpenGL_Enabled;

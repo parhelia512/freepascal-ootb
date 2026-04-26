@@ -61,6 +61,7 @@ implementation
       function  MakeExecutable:boolean;override;
       function  MakeSharedLibrary:boolean;override;
       procedure LoadPredefinedLibraryOrder; override;
+      procedure InternalInitSysInitUnitName(FirstCall: boolean);
       procedure InitSysInitUnitName; override;
     end;
 
@@ -126,9 +127,12 @@ procedure TLinkerBSD.SetDefaultInfo;
 var
   LdProgram: string='ld';
 begin
-  if (target_info.system in (systems_openbsd+[system_x86_64_dragonfly])) or
-  (target_info.system in (systems_freebsd+[system_x86_64_freebsd])) then
-   LdProgram:='ld.bfd';
+  { Force ld.lld usage for x86_64 openbsd system,
+    because GNU linker generates wrong executable's on x86_64 OpenBSD 7.5 }
+  if (cs_link_lld in current_settings.globalswitches) or (target_info.system = system_x86_64_openbsd) then
+    LdProgram:='ld.lld'
+  else if target_info.system in (systems_openbsd+systems_freebsd+[system_x86_64_dragonfly]) then
+    LdProgram:='ld.bfd';
   LibrarySuffix:=' ';
   LdSupportsNoResponseFile := (target_info.system in ([system_m68k_netbsd]+systems_darwin));
   with Info do
@@ -150,9 +154,7 @@ begin
      else if target_info.system in systems_netbsd then
       DynamicLinker:='/usr/libexec/ld.elf_so'
      else if target_info.system=system_x86_64_dragonfly then
-      DynamicLinker:='/libexec/ld-elf.so.2'  
-     else if target_info.system=system_x86_64_freebsd then 
-      DynamicLinker:='/libexec/ld-elf.so.1'  
+      DynamicLinker:='/libexec/ld-elf.so.2'
      else
        DynamicLinker:='';
    end;
@@ -177,14 +179,18 @@ Begin
 End;
 
 
-procedure TLinkerBSD.InitSysInitUnitName;
+
+procedure TLinkerBSD.InternalInitSysInitUnitName(FirstCall: boolean);
 var
   cprtobj,
   gprtobj,
   si_cprt,
   si_gprt : string[80];
 begin
-  linklibc:=ModulesLinkToLibc;
+  { Do not call ModulesLinkToLibc again
+    as it might give a wrong answer }
+  if FirstCall then
+    linklibc:=ModulesLinkToLibc;
   if current_module.islibrary and
      (target_info.system in systems_bsd) then
     begin
@@ -228,6 +234,12 @@ begin
          SysInitUnit:=si_cprt;
        end;
    end;
+end;
+
+
+procedure TLinkerBSD.InitSysInitUnitName;
+begin
+  InternalInitSysInitUnitName(true);
 end;
 
 
@@ -364,18 +376,12 @@ begin
      While not SharedLibFiles.Empty do
       begin
         S:=SharedLibFiles.GetFirst;
-         if ((S <> 'c') and (Pos('libc.so',S) = 0)) or reorder then
-          begin
+        if (s<>'c') or reorder then
+         begin
            i:=Pos(target_info.sharedlibext,S);
            if i>0 then
-             
-            {$ifdef openbsd} 
             Delete(S,i,255);
-            {$else}
-            Insert(':',s,1);   // needed for the linker
-            {$endif}
-
-             LinkRes.Add('-l'+s);
+           LinkRes.Add('-l'+s);
          end
         else
          begin
@@ -451,7 +457,10 @@ begin
   if not(cs_link_nolink in current_settings.globalswitches) then
    Message1(exec_i_linking,current_module.exefilename);
 
-{ Create some replacements }
+  { Call again in case something needs to be modified }
+  InternalInitSysInitUnitName(false);
+
+  { Create some replacements }
   StaticStr:='';
   StripStr:='';
   DynLinkStr:='';
@@ -590,6 +599,9 @@ var
   success : boolean;
 begin
   MakeSharedLibrary:=false;
+  { Call again in case something needs to be modified }
+  InternalInitSysInitUnitName(false);
+
   GCSectionsStr:='';
   mapstr:='';
   linkscript:=nil;

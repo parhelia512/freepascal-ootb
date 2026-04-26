@@ -33,15 +33,15 @@
 type
   TPTCError = class
   private
-    FMessage: AnsiString;
+    FMessage: string;
   public
     constructor Create;
-    constructor Create(const AMessage: AnsiString);
-    constructor Create(const AMessage: AnsiString; const AError: TPTCError);
+    constructor Create(const AMessage: String);
+    constructor Create(const AMessage: string; const AError: TPTCError);
     constructor Create(const AError: TPTCError);
     destructor Destroy; override;
     procedure Assign(const AError: TPTCError);
     function Equals(Obj: TObject): Boolean; override;
     procedure Report;
-    property Message: AnsiString read FMessage;
+    property Message: string read FMessage;
   end;

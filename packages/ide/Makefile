@@ -330,7 +330,7 @@ FPCFPMAKE=$(FPC)
 endif
 endif
 override PACKAGE_NAME=ide
-override PACKAGE_VERSION=3.2.4-rc1
+override PACKAGE_VERSION=3.2.3
 ifdef INSTALL_UNITDIR
 FPMAKE_INSTALL_OPT+=--unitinstalldir=$(INSTALL_UNITDIR)
 endif
@@ -2519,9 +2519,9 @@ endif
 ifndef CROSSBOOTSTRAP
 ifneq ($(BINUTILSPREFIX),)
 override FPCOPT+=-XP$(BINUTILSPREFIX)
-endif
-ifneq ($(BINUTILSPREFIX),)
+ifneq ($(RLINKPATH),)
 override FPCOPT+=-Xr$(RLINKPATH)
+endif
 endif
 endif
 ifndef CROSSCOMPILE

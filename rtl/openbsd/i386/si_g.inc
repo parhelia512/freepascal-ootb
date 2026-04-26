@@ -25,10 +25,9 @@ function atexit(proc: TCdeclProcedure): cint; cdecl; external name 'atexit';
 procedure _monstartup(lowpc, highpc: u_long); cdecl; external name '_monstartup';
 procedure __init; cdecl; external name '__init';
 procedure c_exit(exit_code: cint); cdecl; noreturn; external name 'exit';
-procedure c_exit2(exit_code: cint); cdecl; noreturn; external name '_exit';
-function _csu_finish(_argv: PPChar; _envp: PPChar; _cleanup: TCdeclProcedure): PPPChar; cdecl; external name '_csu_finish';
+function _csu_finish(_argv: PPAnsiChar; _envp: PPAnsiChar; _cleanup: TCdeclProcedure): PPPChar; cdecl; external name '_csu_finish';
 
-procedure _FPC_proc___start(argc: LongInt; argv: PPChar; envp: Pointer; cleanup: TCdeclProcedure); cdecl; forward;
+procedure _FPC_proc___start(argc: LongInt; argv: PPAnsiChar; envp: Pointer; cleanup: TCdeclProcedure); cdecl; forward;
 
 procedure _FPC_proc_start; assembler; nostackframe; public name '_start'; public name '__start';
   asm
@@ -45,9 +44,9 @@ procedure _FPC_proc_start; assembler; nostackframe; public name '_start'; public
     call    _FPC_proc___start
   end;
 
-function _strrchr(str: PChar; character: LongInt): PChar; forward;
+function _strrchr(str: PAnsiChar; character: LongInt): PAnsiChar; forward;
 
-procedure _FPC_proc___start(argc: LongInt; argv: PPChar; envp: Pointer; cleanup: TCdeclProcedure); cdecl;
+procedure _FPC_proc___start(argc: LongInt; argv: PPAnsiChar; envp: Pointer; cleanup: TCdeclProcedure); cdecl;
   var
     I: SizeUInt;
     environp: PPPChar;
@@ -82,10 +81,10 @@ procedure _FPC_proc___start(argc: LongInt; argv: PPChar; envp: Pointer; cleanup:
 
 procedure _FPC_proc_haltproc; cdecl; noreturn; public name '_haltproc';
   begin
-    c_exit2(operatingsystem_result);
+    c_exit(operatingsystem_result);
   end;
 
-function _strrchr(str: PChar; character: LongInt): PChar; public name '_strrchr';
+function _strrchr(str: PAnsiChar; character: LongInt): PAnsiChar; public name '_strrchr';
   begin
     _strrchr:=nil;
     repeat

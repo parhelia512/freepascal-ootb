@@ -45,9 +45,9 @@ type
     function GetFormat: IPTCFormat; virtual; abstract;
 
     function GetPages: Integer; virtual; abstract;
-    function GetName: AnsiString; virtual; abstract;
-    function GetTitle: AnsiString; virtual; abstract;
-    function GetInformation: AnsiString; virtual; abstract;
+    function GetName: string; virtual; abstract;
+    function GetTitle: string; virtual; abstract;
+    function GetInformation: string; virtual; abstract;
 
     function GetOpenGL_Enabled: Boolean; virtual; abstract;
     procedure SetOpenGL_Enabled(AValue: Boolean); virtual; abstract;
@@ -86,18 +86,18 @@ type
                     AArea: IPTCArea); virtual; abstract;
     procedure Palette(APalette: IPTCPalette); virtual; abstract;
     procedure Clip(AArea: IPTCArea); virtual; abstract;
-    function Option(const AOption: AnsiString): Boolean; virtual; abstract;
+    function Option(const AOption: String): Boolean; virtual; abstract;
     function Clip: IPTCArea; virtual; abstract;
     function Palette: IPTCPalette; virtual; abstract;
 
-    procedure Configure(const AFileName: AnsiString); virtual; abstract;
+    procedure Configure(const AFileName: String); virtual; abstract;
     function Modes: TPTCModeList; virtual; abstract;
-    procedure Open(const ATitle: AnsiString; APages: Integer = 0); overload; virtual; abstract;
-    procedure Open(const ATitle: AnsiString; AFormat: IPTCFormat;
+    procedure Open(const ATitle: string; APages: Integer = 0); overload; virtual; abstract;
+    procedure Open(const ATitle: string; AFormat: IPTCFormat;
                    APages: Integer = 0); overload; virtual; abstract;
-    procedure Open(const ATitle: AnsiString; AWidth, AHeight: Integer;
+    procedure Open(const ATitle: string; AWidth, AHeight: Integer;
                    AFormat: IPTCFormat; APages: Integer = 0); overload; virtual; abstract;
-    procedure Open(const ATitle: AnsiString; AMode: IPTCMode;
+    procedure Open(const ATitle: string; AMode: IPTCMode;
                    APages: Integer = 0); overload; virtual; abstract;
     procedure Close; virtual; abstract;
     procedure InternalResize(AWidth, AHeight: Integer); virtual;
@@ -121,9 +121,9 @@ type
     function MoveMouseTo(X, Y: Integer): Boolean; virtual;
 
     property Pages: Integer read GetPages;
-    property Name: AnsiString read GetName;
-    property Title: AnsiString read GetTitle;
-    property Information: AnsiString read GetInformation;
+    property Name: string read GetName;
+    property Title: string read GetTitle;
+    property Information: string read GetInformation;
 
     property Width: Integer read GetWidth;
     property Height: Integer read GetHeight;
@@ -215,7 +215,7 @@ begin
   Result := FReleaseEnabled;
 end;
 
-{ must be overridden in consoles, that support moving the mouse cursor }
+{ must be overriden in consoles, that support moving the mouse cursor }
 function TPTCBaseConsole.MoveMouseTo(X, Y: Integer): Boolean;
 begin
   Result := False;

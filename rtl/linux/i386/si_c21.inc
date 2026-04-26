@@ -39,9 +39,8 @@ procedure ini_dummy;
   begin
   end;
 
-procedure libc_start_main; external name '__libc_start_main@GLIBC_2.0';
-procedure libc_exit(code: longint); cdecl; external name 'exit@GLIBC_2.0';
-
+procedure libc_start_main; external name '__libc_start_main';
+procedure libc_exit(code: longint); cdecl; external name 'exit';
 
 {******************************************************************************
                        glibc 2.1 lib + profiling start/halt

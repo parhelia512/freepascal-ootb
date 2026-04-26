@@ -59,24 +59,24 @@ begin
   inherited Destroy;
 end;
 
-procedure TWinCEGDIConsole.Open(const ATitle: AnsiString; APages: Integer = 0);
+procedure TWinCEGDIConsole.Open(const ATitle: string; APages: Integer = 0);
 begin
   Open(ATitle, FDefaultFormat, APages);
 end;
 
-procedure TWinCEGDIConsole.Open(const ATitle: AnsiString; AFormat: IPTCFormat;
+procedure TWinCEGDIConsole.Open(const ATitle: string; AFormat: IPTCFormat;
                                 APages: Integer = 0);
 begin
   Open(ATitle, FDisplayWidth, FDisplayHeight, AFormat, APages);
 end;
 
-procedure TWinCEGDIConsole.Open(const ATitle: AnsiString; AMode: IPTCMode;
+procedure TWinCEGDIConsole.Open(const ATitle: string; AMode: IPTCMode;
                                 APages: Integer = 0);
 begin
   Open(ATitle, AMode.Width, AMode.Height, AMode.Format, APages);
 end;
 
-procedure TWinCEGDIConsole.Open(const ATitle: AnsiString; AWidth, AHeight: Integer;
+procedure TWinCEGDIConsole.Open(const ATitle: string; AWidth, AHeight: Integer;
                                 AFormat: IPTCFormat; APages: Integer = 0);
 var
   DeviceContext: HDC;
@@ -269,10 +269,10 @@ begin
   {todo...}
 end;
 
-procedure TWinCEGDIConsole.Configure(const AFileName: AnsiString);
+procedure TWinCEGDIConsole.Configure(const AFileName: string);
 var
   F: Text;
-  S: AnsiString;
+  S: string;
 begin
   AssignFile(F, AFileName);
   {$push}{$I-}
@@ -292,7 +292,7 @@ begin
   CloseFile(F);
 end;
 
-function TWinCEGDIConsole.Option(const AOption: AnsiString): Boolean;
+function TWinCEGDIConsole.Option(const AOption: string): Boolean;
 begin
   LOG('console option', AOption);
 
@@ -474,24 +474,24 @@ begin
   Result := 2;
 end;
 
-function TWinCEGDIConsole.GetName: AnsiString;
+function TWinCEGDIConsole.GetName: string;
 begin
   Result := 'WinCE';
 end;
 
-function TWinCEGDIConsole.GetTitle: AnsiString;
+function TWinCEGDIConsole.GetTitle: string;
 begin
   CheckOpen('TWinCEGDIConsole.GetTitle');
   Result := FTitle;
 end;
 
-function TWinCEGDIConsole.GetInformation: AnsiString;
+function TWinCEGDIConsole.GetInformation: string;
 begin
   CheckOpen('TWinCEGDIConsole.GetInformation');
   Result := ''; // todo...
 end;
 
-procedure TWinCEGDIConsole.CheckOpen(AMessage: AnsiString);
+procedure TWinCEGDIConsole.CheckOpen(AMessage: string);
 begin
   if not FOpen then
   try
@@ -502,7 +502,7 @@ begin
   end;
 end;
 
-procedure TWinCEGDIConsole.CheckUnlocked(AMessage: AnsiString);
+procedure TWinCEGDIConsole.CheckUnlocked(AMessage: string);
 begin
   if FLocked then
   try

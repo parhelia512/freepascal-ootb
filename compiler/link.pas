@@ -499,21 +499,14 @@ Implementation
       begin
         if s='' then
           exit;
-        
-        {$ifdef openbsd}
-        if true then
-        {$else}
-        if (Pos(target_info.sharedlibext + '.',S) = 0) then // no extended soname     
-        {$endif}
-        begin
-        if Copy(s,1,length(target_info.sharedlibprefix))=target_info.sharedlibprefix then  { remove prefix 'lib' }
+        { remove prefix 'lib' }
+        if Copy(s,1,length(target_info.sharedlibprefix))=target_info.sharedlibprefix then
           Delete(s,1,length(target_info.sharedlibprefix));
         { remove extension if any }
         if Copy(s,length(s)-length(target_info.sharedlibext)+1,length(target_info.sharedlibext))=target_info.sharedlibext then
           Delete(s,length(s)-length(target_info.sharedlibext)+1,length(target_info.sharedlibext)+1);
         { ready to be added }
-        end;
-       SharedLibFiles.Concat(S);
+        SharedLibFiles.Concat(S);
       end;
 
 
@@ -535,19 +528,13 @@ Implementation
       begin
         if s='' then
           exit;
-         {$ifdef openbsd}
-        if true then
-        {$else}
-         if (Pos(target_info.sharedclibext + '.',S) = 0) then // no extended soname    
-        {$endif}
-        begin
-     { remove prefix 'lib' }
+        { remove prefix 'lib' }
         if Copy(s,1,length(target_info.sharedclibprefix))=target_info.sharedclibprefix then
           Delete(s,1,length(target_info.sharedclibprefix));
         { remove extension if any }
         if Copy(s,length(s)-length(target_info.sharedclibext)+1,length(target_info.sharedclibext))=target_info.sharedclibext then
           Delete(s,length(s)-length(target_info.sharedclibext)+1,length(target_info.sharedclibext)+1);
-        end;
+        { ready to be added }
         SharedLibFiles.Concat(S);
       end;
 

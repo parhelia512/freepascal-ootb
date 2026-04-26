@@ -33,9 +33,7 @@
 {$ASMMODE intel}
 {$GOTO on}
 
-{$IFNDEF FPC_DOTTEDUNITS}
 unit timeunit;
-{$ENDIF FPC_DOTTEDUNITS}
 
 interface
 

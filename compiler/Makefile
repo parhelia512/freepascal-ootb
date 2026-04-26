@@ -330,7 +330,7 @@ FPCFPMAKE=$(FPC)
 endif
 endif
 override PACKAGE_NAME=compiler
-override PACKAGE_VERSION=3.2.4-rc1
+override PACKAGE_VERSION=3.2.3
 unexport FPC_VERSION FPC_COMPILERINFO
 CYCLETARGETS=i386 powerpc sparc arm x86_64 powerpc64 m68k armeb mipsel mips avr jvm i8086 aarch64 sparc64
 ALLTARGETS=$(CYCLETARGETS)
@@ -3213,9 +3213,9 @@ endif
 ifndef CROSSBOOTSTRAP
 ifneq ($(BINUTILSPREFIX),)
 override FPCOPT+=-XP$(BINUTILSPREFIX)
-endif
-ifneq ($(BINUTILSPREFIX),)
+ifneq ($(RLINKPATH),)
 override FPCOPT+=-Xr$(RLINKPATH)
+endif
 endif
 endif
 ifndef CROSSCOMPILE

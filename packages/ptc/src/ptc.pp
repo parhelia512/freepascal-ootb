@@ -63,16 +63,13 @@ unit ptc;
 
 interface
 
-{$IFDEF FPC_DOTTEDUNITS}
-uses
-  Api.Hermes;
-{$ELSE FPC_DOTTEDUNITS}
+{$IFNDEF FPDOC}
 uses
   Hermes;
-{$ENDIF FPC_DOTTEDUNITS}
+{$ENDIF FPDOC}
 
 const
-  PTCPAS_VERSION = 'PTCPas 0.99.16';
+  PTCPAS_VERSION = 'PTCPas 0.99.15';
 
 type
   PUint8  = ^Uint8;
@@ -118,54 +115,6 @@ type
 
 implementation
 
-{$IFDEF FPC_DOTTEDUNITS}
-{$IFDEF GO32V2}
-uses
-  PTC.Dos.Textfx2, PTC.Dos.Vesa, PTC.Dos.Vga, PTC.Dos.Cga, PTC.Dos.Timeunit, System.Console.Crt, DOSApi.GO32, PTC.Dos.Mouse33h;
-{$ENDIF GO32V2}
-
-{$IF defined(WIN32) OR defined(WIN64)}
-uses
-  WinApi.Windows, PTC.Win32.P_ddraw, Api.OpenGL.Glext;
-{$ENDIF defined(WIN32) OR defined(WIN64)}
-
-{$IFDEF WinCE}
-uses
-  WinApi.Windows, PTC.WinCE.P_gx;
-{$ENDIF WinCE}
-
-{$IFDEF Unix}
-uses
-  UnixApi.Base, UnixApi.Unix
-  {$IFDEF X11}
-    , System.CTypes, Api.X11.X, Api.X11.Xlib, Api.X11.Xutil, Api.X11.Xatom, Api.X11.Keysym, Api.X11.Xkblib
-    {$IFDEF ENABLE_X11_EXTENSION_XRANDR}
-    , Api.X11.Xrandr
-    {$ENDIF ENABLE_X11_EXTENSION_XRANDR}
-    {$IFDEF ENABLE_X11_EXTENSION_XF86VIDMODE}
-    , Api.X11.Xf86vmode
-    {$ENDIF ENABLE_X11_EXTENSION_XF86VIDMODE}
-    {$IFDEF ENABLE_X11_EXTENSION_XF86DGA}
-    , Api.X11.Xf86dga
-    {$ENDIF ENABLE_X11_EXTENSION_XF86DGA}
-    {$IFDEF ENABLE_X11_EXTENSION_XSHM}
-    , Api.X11.Xshm, UnixApi.Ipc
-    {$ENDIF ENABLE_X11_EXTENSION_XSHM}
-    {$IFDEF ENABLE_X11_EXTENSION_GLX}
-    , Api.OpenGL.Glx
-    {$ENDIF ENABLE_X11_EXTENSION_GLX}
-    {$IFDEF ENABLE_X11_EXTENSION_XINPUT2}
-    , Api.X11.Xi2, Api.X11.Xinput2
-    {$ENDIF ENABLE_X11_EXTENSION_XINPUT2}
-  {$ENDIF X11}
-  {$IFDEF COCOA}
-    , Api.Cocoa.CocoaAll
-  {$ENDIF COCOA}
-  ;
-{$ENDIF Unix}
-
-{$ELSE FPC_DOTTEDUNITS}
-
 {$IFDEF GO32V2}
 uses
   textfx2, vesa, vga, cga, timeunit, crt, go32, mouse33h;
@@ -210,7 +159,6 @@ uses
   {$ENDIF COCOA}
   ;
 {$ENDIF UNIX}
-{$ENDIF FPC_DOTTEDUNITS}
 
 { this little procedure is not a good reason to include the whole sysutils
   unit :) }
@@ -233,17 +181,17 @@ begin
     FreeMem(tmp);
 end;
 
-function IntToStr(Value: Integer): AnsiString;
+function IntToStr(Value: Integer): string;
 begin
   System.Str(Value, Result);
 end;
 
-function IntToStr(Value: Int64): AnsiString;
+function IntToStr(Value: Int64): string;
 begin
   System.Str(Value, Result);
 end;
 
-function IntToStr(Value: QWord): AnsiString;
+function IntToStr(Value: QWord): string;
 begin
   System.Str(Value, Result);
 end;

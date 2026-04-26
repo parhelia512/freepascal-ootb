@@ -154,7 +154,7 @@ end;
 
 procedure TX11GLXFBConfig.SetSwapInterval(AInterval: Integer);
 
-  function GlxResult2String(AGlxResult: cint): AnsiString;
+  function GlxResult2String(AGlxResult: cint): string;
   begin
     case AGlxResult of
       GLX_BAD_VALUE:   Result := 'GLX_BAD_VALUE';

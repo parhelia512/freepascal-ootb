@@ -330,7 +330,7 @@ FPCFPMAKE=$(FPC)
 endif
 endif
 override PACKAGE_NAME=fpc
-override PACKAGE_VERSION=3.2.4-rc1
+override PACKAGE_VERSION=3.2.3
 REQUIREDVERSION=3.2.2
 REQUIREDVERSION2=3.2.0
 ifndef inOS2
@@ -1438,9 +1438,9 @@ endif
 ifndef CROSSBOOTSTRAP
 ifneq ($(BINUTILSPREFIX),)
 override FPCOPT+=-XP$(BINUTILSPREFIX)
-endif
-ifneq ($(BINUTILSPREFIX),)
+ifneq ($(RLINKPATH),)
 override FPCOPT+=-Xr$(RLINKPATH)
+endif
 endif
 endif
 ifndef CROSSCOMPILE

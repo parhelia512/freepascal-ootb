@@ -51,13 +51,13 @@ end;
 procedure TWin32Event.SetEvent;
 begin
   { set event }
-  {$IFDEF FPC_DOTTEDUNITS}WinApi.{$ENDIF}Windows.SetEvent(FEvent);
+  windows.SetEvent(FEvent);
 end;
 
 procedure TWin32Event.ResetEvent;
 begin
   { reset event }
-  {$IFDEF FPC_DOTTEDUNITS}WinApi.{$ENDIF}Windows.ResetEvent(FEvent);
+  windows.ResetEvent(FEvent);
 end;
 
 procedure TWin32Event.WaitForEvent;

@@ -2713,7 +2713,7 @@ begin
                       end;
                     'L' : begin  // -XLO is link order -XLA is link alias. -XLD avoids load defaults.
                                  // these are not aggregable.
-                            if (j=length(more)) or not (more[j+1] in ['O','A','D']) then
+                            if (j=length(more)) or not (more[j+1] in ['O','A','D','L']) then
                               IllegalPara(opt)
                             else
                               begin
@@ -2728,7 +2728,17 @@ begin
                                         if not LinkLibraryOrder.AddWeight(s) Then
                                            IllegalPara(opt);
                                        end;
-                                 'D' : include(init_settings.globalswitches,cs_link_no_default_lib_order)
+                                 'D' : include(init_settings.globalswitches,cs_link_no_default_lib_order);
+                                 'L' : begin
+                                         if UnsetBool(More, j, opt, false) then
+                                           exclude(init_settings.globalswitches,cs_link_lld)
+                                         else
+                                           begin
+                                             include(init_settings.globalswitches,cs_link_lld);
+                                             include(init_settings.globalswitches,cs_link_extern);
+                                           end;
+                                         LinkerSetExplicitly:=true;
+                                       end
                                 else
                                   IllegalPara(opt);
                                  end; {case}
@@ -3461,14 +3471,10 @@ begin
     Order to read configuration file :
     try reading fpc.cfg in :
      1 - current dir
-     2 - compiler path
-     3 - configpath
-     4 - system path
+     2 - configpath
+     3 - compiler path
   }
-  if not FileExists(fn) then // current dir
-    if CfgFileExists(IncludeTrailingBackslash(ExtractFilePath(ParamStr(0)))+fn) then
-       foundfn:=IncludeTrailingBackslash(ExtractFilePath(ParamStr(0)))+fn // dir of compiler
-    else 
+  if not FileExists(fn) then
    begin
 {$ifdef Unix}
      hs:=GetEnvironmentVariable('HOME');

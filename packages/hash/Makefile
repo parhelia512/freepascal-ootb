@@ -330,7 +330,7 @@ FPCFPMAKE=$(FPC)
 endif
 endif
 override PACKAGE_NAME=hash
-override PACKAGE_VERSION=3.2.4-rc1
+override PACKAGE_VERSION=3.2.3
 FPMAKE_BIN_CLEAN=$(wildcard ./fpmake$(SRCEXEEXT))
 ifdef OS_TARGET
 FPC_TARGETOPT+=--os=$(OS_TARGET)
@@ -1352,9 +1352,9 @@ endif
 ifndef CROSSBOOTSTRAP
 ifneq ($(BINUTILSPREFIX),)
 override FPCOPT+=-XP$(BINUTILSPREFIX)
-endif
-ifneq ($(BINUTILSPREFIX),)
+ifneq ($(RLINKPATH),)
 override FPCOPT+=-Xr$(RLINKPATH)
+endif
 endif
 endif
 ifndef CROSSCOMPILE

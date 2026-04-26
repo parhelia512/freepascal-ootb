@@ -42,7 +42,7 @@ type
     FResolutionsCount: Integer;
     FModes: array of IPTCMode;
     FResolutions: array of IPTCMode;
-    FInformation: AnsiString;
+    FInformation: string;
 
     FCursorSaved: Boolean;
     FCursorX, FCursorY: Integer;
@@ -70,5 +70,5 @@ type
     property Modes: TPTCModeList read GetModes;
     property Mode: IPTCMode read FMode;
     property Fullscreen: Boolean read FFullscreen;
-    property Information: AnsiString read FInformation;
+    property Information: string read FInformation;
   end;

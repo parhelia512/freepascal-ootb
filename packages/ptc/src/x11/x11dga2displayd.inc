@@ -38,7 +38,7 @@ type
     FOpen: Boolean;
     FXDGAEventBase: cint;
     FXDGAErrorBase: cint;
-
+  
     { The list of available modes (todo: move to local vars in the open function) }
     FXDGAModes: PXDGAMode;
     FXDGAModesNum: cint;
@@ -62,7 +62,7 @@ type
     constructor Create(ADisplay: PDisplay; AScreen: Integer; const AFlags: TX11Flags); override;
     destructor Destroy; override;
 
-    procedure Open(ATitle: AnsiString; AWidth, AHeight: Integer; AFormat: IPTCFormat; const AOpenGLAttributes: IPTCOpenGLAttributes); override;
+    procedure Open(ATitle: string; AWidth, AHeight: Integer; AFormat: IPTCFormat; const AOpenGLAttributes: IPTCOpenGLAttributes); override;
     procedure Open(w: TWindow; _format: IPTCFormat); override;
     procedure Open(_window: TWindow; _format: IPTCFormat; x, y, w, h: Integer); override;
     procedure Close; override;

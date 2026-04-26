@@ -55,7 +55,7 @@ end;
 
 function TGDIHook.WndProc(hWnd: HWND; message: DWord; wParam: WPARAM; lParam: LPARAM): LRESULT;
 
-  function WMSizeWParam2String(wParam: WPARAM): AnsiString;
+  function WMSizeWParam2String(wParam: WPARAM): string;
   begin
     case wParam of
       SIZE_MAXHIDE:   Result := 'SIZE_MAXHIDE';

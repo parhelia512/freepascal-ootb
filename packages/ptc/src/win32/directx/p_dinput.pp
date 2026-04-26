@@ -7,9 +7,7 @@
  *
  ****************************************************************************)
 
-{$IFNDEF FPC_DOTTEDUNITS}
 unit p_dinput;
-{$ENDIF FPC_DOTTEDUNITS}
 
 {$MODE objfpc}{$H+}
 {$MACRO on}
@@ -19,13 +17,8 @@ unit p_dinput;
 
 interface
 
-{$IFDEF FPC_DOTTEDUNITS}
-uses
-  WinApi.Windows;
-{$ELSE FPC_DOTTEDUNITS}
 uses
   windows;
-{$ENDIF FPC_DOTTEDUNITS}
 
 //#ifndef __DINPUT_INCLUDED__
 //#define __DINPUT_INCLUDED__
@@ -326,7 +319,7 @@ type
     dwSize: DWORD;
     GuidEffect: GUID;
     lpDiEffect: LPCDIEFFECT;
-    szFriendlyName: array [0..MAX_PATH-1] of AnsiChar;
+    szFriendlyName: array [0..MAX_PATH-1] of CHAR;
   end;
 //typedef BOOL (FAR PASCAL * LPDIENUMEFFECTSINFILECALLBACK)(LPCDIFILEEFFECT , LPVOID);
   LPDIENUMEFFECTSINFILECALLBACK = function(lpDiFileEf: LPCDIFILEEFFECT; pvRef: LPVOID): BOOL; stdcall;
@@ -349,13 +342,13 @@ const
   DIEP_DIRECTION              = $00000040;
   DIEP_ENVELOPE               = $00000080;
   DIEP_TYPESPECIFICPARAMS     = $00000100;
-{$IF DIRECTINPUT_VERSION >= $0600}
+{$IF DIRECTINPUT_VERSION >= 0x0600}
   DIEP_STARTDELAY             = $00000200;
   DIEP_ALLPARAMS_DX5          = $000001FF;
   DIEP_ALLPARAMS              = $000003FF;
-{$ELSE} { DIRECTINPUT_VERSION < $0600 }
+{$ELSE} { DIRECTINPUT_VERSION < 0x0600 }
   DIEP_ALLPARAMS              = $000001FF;
-{$ENDIF} { DIRECTINPUT_VERSION < $0600 }
+{$ENDIF} { DIRECTINPUT_VERSION < 0x0600 }
   DIEP_START                  = $20000000;
   DIEP_NORESTART              = $40000000;
   DIEP_NODOWNLOAD             = $80000000;
@@ -475,7 +468,7 @@ const
   DI8DEVTYPE_SCREENPOINTER = $1A;
   DI8DEVTYPE_REMOTE        = $1B;
   DI8DEVTYPE_SUPPLEMENTAL  = $1C;
-{$ENDIF} { DIRECTINPUT_VERSION <= $700 }
+{$ENDIF} { DIRECTINPUT_VERSION <= 0x700 }
 
 const
   DIDEVTYPE_HID            = $00010000;
@@ -601,7 +594,7 @@ type
     dwButtons: DWORD;
     dwPOVs: DWORD;
   end;
-{$ENDIF} { DIRECTINPUT_VERSION >= $0500 }
+{$ENDIF} { DIRECTINPUT_VERSION >= 0x0500 }
 
   LPDIDEVCAPS = ^TDIDEVCAPS;
   PDIDEVCAPS = ^TDIDEVCAPS;
@@ -728,7 +721,7 @@ var
   c_dfDIJoystick: TDIDATAFORMAT; cvar; external;
 //extern const DIDATAFORMAT c_dfDIJoystick2;
   c_dfDIJoystick2: TDIDATAFORMAT; cvar; external;
-{$ENDIF} { DIRECTINPUT_VERSION >= $0500 }
+{$ENDIF} { DIRECTINPUT_VERSION >= 0x0500 }
 
 //#ifdef __cplusplus
 //};
@@ -831,7 +824,7 @@ type
     hInstString: HINST;  {OPTIONAL}
     ftTimeStamp: FILETIME;
     dwCRC: DWORD;
-    tszActionMap: array [0..MAX_PATH-1] of AnsiChar;
+    tszActionMap: array [0..MAX_PATH-1] of CHAR;
   end;
   LPDIACTIONFORMATW = ^TDIACTIONFORMATW;
   PDIACTIONFORMATW = ^TDIACTIONFORMATW;
@@ -977,7 +970,7 @@ type
   LPDIDEVICEIMAGEINFOA = ^TDIDEVICEIMAGEINFOA;
   PDIDEVICEIMAGEINFOA = ^TDIDEVICEIMAGEINFOA;
   TDIDEVICEIMAGEINFOA = record
-    tszImagePath: array [0..MAX_PATH-1] of AnsiChar;
+    tszImagePath: array [0..MAX_PATH-1] of CHAR;
     dwFlags: DWORD;
     // These are valid if DIDIFT_OVERLAY is present in dwFlags.
     dwViewID: DWORD;
@@ -1084,7 +1077,7 @@ type
     dwOfs: DWORD;
     dwType: DWORD;
     dwFlags: DWORD;
-    tszName: array [0..MAX_PATH-1] of AnsiChar;
+    tszName: array [0..MAX_PATH-1] of CHAR;
   end;
   LPDIDEVICEOBJECTINSTANCE_DX3W = ^TDIDEVICEOBJECTINSTANCE_DX3W;
   PDIDEVICEOBJECTINSTANCE_DX3W = ^TDIDEVICEOBJECTINSTANCE_DX3W;
@@ -1118,7 +1111,7 @@ type
     dwOfs: DWORD;
     dwType: DWORD;
     dwFlags: DWORD;
-    tszName: array [0..MAX_PATH-1] of AnsiChar;
+    tszName: array [0..MAX_PATH-1] of CHAR;
 {$IF DIRECTINPUT_VERSION >= $0500}
     dwFFMaxForce: DWORD;
     dwFFForceResolution: DWORD;
@@ -1211,7 +1204,7 @@ const
   DIPH_BYUSAGE          = 3;
 {$ENDIF} { DIRECTINPUT_VERSION >= $050a }
 
-//#if(DIRECTINPUT_VERSION >= $050a)
+//#if(DIRECTINPUT_VERSION >= 0x050a)
 //#define DIMAKEUSAGEDWORD(UsagePage, Usage) \
 //                                (DWORD)MAKELONG(Usage, UsagePage)
 //#endif /* DIRECTINPUT_VERSION >= 0x050a */
@@ -1476,8 +1469,8 @@ type
     guidInstance: GUID;
     guidProduct: GUID;
     dwDevType: DWORD;
-    tszInstanceName: array [0..MAX_PATH-1] of AnsiChar;
-    tszProductName: array [0..MAX_PATH-1] of AnsiChar;
+    tszInstanceName: array [0..MAX_PATH-1] of CHAR;
+    tszProductName: array [0..MAX_PATH-1] of CHAR;
   end;
   LPDIDEVICEINSTANCE_DX3W = ^TDIDEVICEINSTANCE_DX3W;
   PDIDEVICEINSTANCE_DX3W = ^TDIDEVICEINSTANCE_DX3W;
@@ -1513,8 +1506,8 @@ type
     guidInstance: GUID;
     guidProduct: GUID;
     dwDevType: DWORD;
-    tszInstanceName: array [0..MAX_PATH-1] of AnsiChar;
-    tszProductName: array [0..MAX_PATH-1] of AnsiChar;
+    tszInstanceName: array [0..MAX_PATH-1] of CHAR;
+    tszProductName: array [0..MAX_PATH-1] of CHAR;
 {$IF DIRECTINPUT_VERSION >= $0500}
     guidFFDriver: GUID;
     wUsagePage: WORD;
@@ -1704,7 +1697,7 @@ type
     dwEffType: DWORD;
     dwStaticParams: DWORD;
     dwDynamicParams: DWORD;
-    tszName: array [0..MAX_PATH-1] of AnsiChar;
+    tszName: array [0..MAX_PATH-1] of CHAR;
   end;
   LPDIEFFECTINFOW = ^TDIEFFECTINFOW;
   PDIEFFECTINFOW = ^TDIEFFECTINFOW;
@@ -3149,7 +3142,7 @@ const
   DIERR_NOINTERFACE               = E_NOINTERFACE;
 
 (*
- * An undetermined error occurred inside the DInput subsystem
+ * An undetermined error occured inside the DInput subsystem
  *)
   DIERR_GENERIC                   = E_FAIL;
 
@@ -3557,7 +3550,7 @@ const
   DIBUTTON_DRIVINGC_PAUSE                 = $020044FC; { Start / Pause / Restart game }
 
 (*--- Driving Simulator - Tank
-      Combat from within a tank is primary objective  ---*)
+      Combat from withing a tank is primary objective  ---*)
   DIVIRTUAL_DRIVING_TANK                  = $03000000;
   DIAXIS_DRIVINGT_STEER                   = $03008A01; { Turn tank left / right }
   DIAXIS_DRIVINGT_BARREL                  = $03010202; { Raise / lower barrel }
@@ -4656,7 +4649,7 @@ const
 
 (*
  * Informs the joystick driver that the configuration has been changed
- * and should be reloaded from the registry.
+ * and should be reloaded from the registery.
  * dwFlags is reserved and should be set to zero
  *)
 //WINMMAPI MMRESULT WINAPI joyConfigChanged( DWORD dwFlags );
@@ -4769,7 +4762,7 @@ function DIDFT_ENUMCOLLECTION(n: WORD): DWORD; inline;
 {$IF DIRECTINPUT_VERSION >= $050a}
 function DIMAKEUSAGEDWORD(UsagePage, Usage: Word): DWORD; inline;
 {$ENDIF} { DIRECTINPUT_VERSION >= $050a }
-function DISEQUENCE_COMPARE(dwSequence1: DWORD; const cmp: AnsiString; dwSequence2: DWORD): Boolean; inline;
+function DISEQUENCE_COMPARE(dwSequence1: DWORD; const cmp: string; dwSequence2: DWORD): Boolean; inline;
 function DIBUTTON_ANY(instance: Byte): DWORD; inline;
 
 implementation
@@ -4809,7 +4802,7 @@ end;
 
 //#define DISEQUENCE_COMPARE(dwSequence1, cmp, dwSequence2) \
 //                        ((int)((dwSequence1) - (dwSequence2)) cmp 0)
-function DISEQUENCE_COMPARE(dwSequence1: DWORD; const cmp: AnsiString; dwSequence2: DWORD): Boolean; inline;
+function DISEQUENCE_COMPARE(dwSequence1: DWORD; const cmp: string; dwSequence2: DWORD): Boolean; inline;
 begin
 {$PUSH}{$Q-,R-}
   if (cmp = '==') or (cmp = '=') then

@@ -59,10 +59,10 @@ begin
   inherited Destroy;
 end;
 
-procedure TX11Console.Configure(const AFileName: AnsiString);
+procedure TX11Console.Configure(const AFileName: String);
 var
   F: TextFile;
-  S: AnsiString;
+  S: string;
 begin
   AssignFile(F, AFileName);
   {$push}{$I-}
@@ -82,7 +82,7 @@ begin
   CloseFile(F);
 end;
 
-function TX11Console.Option(const AOption: AnsiString): Boolean;
+function TX11Console.Option(const AOption: string): Boolean;
 begin
   Result := True;
   if AOption = 'default output' then
@@ -295,18 +295,18 @@ begin
 end;
 
 {TODO: Find current pixel depth}
-procedure TX11Console.Open(const ATitle: AnsiString; APages: Integer = 0);
+procedure TX11Console.Open(const ATitle: string; APages: Integer = 0);
 begin
   Open(ATitle, TPTCFormat.Create(32, $FF0000, $FF00, $FF), APages);
 end;
 
-procedure TX11Console.Open(const ATitle: AnsiString; AFormat: IPTCFormat;
+procedure TX11Console.Open(const ATitle: string; AFormat: IPTCFormat;
                            APages: Integer = 0);
 begin
   Open(ATitle, 640, 480, AFormat, APages);
 end;
 
-procedure TX11Console.Open(const ATitle: AnsiString; AMode: IPTCMode;
+procedure TX11Console.Open(const ATitle: string; AMode: IPTCMode;
                            APages: Integer = 0);
 begin
   Open(ATitle, AMode.Width, AMode.Height, AMode.Format, APages);
@@ -360,7 +360,7 @@ begin
   Result := TX11WindowDisplay.Create(display, screen, FFlags);
 end;
 
-procedure TX11Console.Open(const ATitle: AnsiString; AWidth, AHeight: Integer;
+procedure TX11Console.Open(const ATitle: string; AWidth, AHeight: Integer;
                            AFormat: IPTCFormat; APages: Integer = 0);
 begin
   Close;
@@ -541,17 +541,17 @@ begin
   Result := FX11Display.Format;
 end;
 
-function TX11Console.GetName: AnsiString;
+function TX11Console.GetName: string;
 begin
   Result := 'X11';
 end;
 
-function TX11Console.GetTitle: AnsiString;
+function TX11Console.GetTitle: string;
 begin
   Result := FTitle;
 end;
 
-function TX11Console.GetInformation: AnsiString;
+function TX11Console.GetInformation: string;
 begin
   if FX11Display = nil then
     exit('PTC X11');

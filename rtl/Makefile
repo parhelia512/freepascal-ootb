@@ -330,7 +330,7 @@ FPCFPMAKE=$(FPC)
 endif
 endif
 override PACKAGE_NAME=rtl
-override PACKAGE_VERSION=3.2.4-rc1
+override PACKAGE_VERSION=3.2.3
 ifeq ($(FULL_TARGET),i386-linux)
 override TARGET_DIRS+=linux
 endif
@@ -1279,9 +1279,9 @@ endif
 ifndef CROSSBOOTSTRAP
 ifneq ($(BINUTILSPREFIX),)
 override FPCOPT+=-XP$(BINUTILSPREFIX)
-endif
-ifneq ($(BINUTILSPREFIX),)
+ifneq ($(RLINKPATH),)
 override FPCOPT+=-Xr$(RLINKPATH)
+endif
 endif
 endif
 ifndef CROSSCOMPILE

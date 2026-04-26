@@ -61,9 +61,9 @@ begin
   inherited Destroy;
 end;
 
-procedure TX11DGA2Display.Open(ATitle: AnsiString; AWidth, AHeight: Integer; AFormat: IPTCFormat; const AOpenGLAttributes: IPTCOpenGLAttributes);
+procedure TX11DGA2Display.Open(ATitle: string; AWidth, AHeight: Integer; AFormat: IPTCFormat; const AOpenGLAttributes: IPTCOpenGLAttributes);
 
-  function ModeFlagsToString(AFlags: cint): AnsiString;
+  function ModeFlagsToString(AFlags: cint): string;
   begin
     Result := '';
     if (AFlags and XDGAConcurrentAccess) <> 0 then
@@ -83,8 +83,8 @@ procedure TX11DGA2Display.Open(ATitle: AnsiString; AWidth, AHeight: Integer; AFo
     if Result <> '' then
       Delete(Result, 1, 1);
   end;
-
-  function ViewportFlagsToString(AViewportFlags: cint): AnsiString;
+  
+  function ViewportFlagsToString(AViewportFlags: cint): string;
   begin
     Result := '';
     if (AViewportFlags and XDGAFlipRetrace) <> 0 then
@@ -94,8 +94,8 @@ procedure TX11DGA2Display.Open(ATitle: AnsiString; AWidth, AHeight: Integer; AFo
     if Result <> '' then
       Delete(Result, 1, 1);
   end;
-
-  function ByteOrderToString(AByteOrder: cint): AnsiString;
+  
+  function ByteOrderToString(AByteOrder: cint): string;
   begin
     case AByteOrder of
       LSBFirst: Result := ' (LSBFirst)';
@@ -105,7 +105,7 @@ procedure TX11DGA2Display.Open(ATitle: AnsiString; AWidth, AHeight: Integer; AFo
     end;
   end;
 
-  function VisualClassToString(AVisualClass: cshort): AnsiString;
+  function VisualClassToString(AVisualClass: cshort): string;
   begin
     case AVisualClass of
       StaticGray: Result := ' (StaticGray)';
