@@ -11,9 +11,8 @@ rm -f -r /tmp/fpc-ootb
 mkdir /tmp/fpc-ootb
 mkdir /tmp/fpc-ootb/usr
 
-
-gmake all FPC=$COMPILER OPT="-Fl/usr/local/lib" 
-gmake FPC=$COMPILER install INSTALL_PREFIX=$INSTALLDIR
+gmake distclean all FPC=$COMPILER OPT="-n -gwl -Aas -vx" OVERRIDEVERSIONCHECK=1 
+gmake FPC=$COMPILER install INSTALL_PREFIX=$INSTALLDIR OPT="-n -gwl -Aas -vx" OVERRIDEVERSIONCHECK=1
 
 rm -f -r ./fpc-ootb-32
 mkdir ./fpc-ootb-32
