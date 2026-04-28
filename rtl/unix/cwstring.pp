@@ -77,6 +77,7 @@ const
   LIBC_SUFFIX2 = '@GLIBC_2.1';
   {$else}
   LIBC_SUFFIX = '';
+  LIBC_SUFFIX2 = '';
   {$endif}
   {$endif}
   {$endif}
@@ -103,7 +104,7 @@ Const
   {$endif}
 {$endif}
 
-{ helper functions from libc }
+{ helper functions from libc }
 function towlower(__wc:wint_t):wint_t;cdecl;external clib name 'towlower' + LIBC_SUFFIX ;
 function towupper(__wc:wint_t):wint_t;cdecl;external clib name 'towupper' + LIBC_SUFFIX ;
 
