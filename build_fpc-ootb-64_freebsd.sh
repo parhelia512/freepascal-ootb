@@ -6,14 +6,14 @@ COMPILER=fpc
 
 INSTALLDIR=/tmp/fpc-ootb/usr
 
-make clean
+gmake clean
 rm -f -r /tmp/fpc-ootb
 mkdir /tmp/fpc-ootb
 mkdir /tmp/fpc-ootb/usr
 
 
-make all FPC=$COMPILER OPT="-Fl/usr/local/lib" 
-make FPC=$COMPILER install INSTALL_PREFIX=$INSTALLDIR
+gmake all FPC=$COMPILER OPT="-Fl/usr/local/lib" 
+gmake FPC=$COMPILER install INSTALL_PREFIX=$INSTALLDIR
 
 rm -f -r ./fpc-ootb-64
 mkdir ./fpc-ootb-64
