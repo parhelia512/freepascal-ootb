@@ -1,16 +1,29 @@
-unit xutil;
+unit mxutil;
 interface
 uses
-  ctypes,x,xlib,keysym;
+  ctypes,mx,mxlib,mkeysym;
 
 {$define MACROS}
 
 {$ifndef os2}
   {$LinkLib c}
-  {$LinkLib libX11.so.6}
-const
-  libX11='libX11.so.6';
-{$else}
+  
+ {$ifdef darwin}
+  {$LinkLib libX11.dylib}
+   const
+   libX11='libX11.dylib';
+ {$else}
+  {$if defined(netbsd) or defined(openbsd) or defined(dragonfly)}
+   {$LinkLib libX11.so}
+   const
+   libX11='libX11.so';
+    {$else}
+   {$LinkLib libX11.so.6}
+   const
+   libX11='libX11.so.6';
+  {$endif}
+   {$endif}
+ {$else}
 const
   libX11='X11';
 {$endif}

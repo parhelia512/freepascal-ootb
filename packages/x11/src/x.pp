@@ -1,11 +1,19 @@
-unit x;
+unit mx;
 interface
 uses
   ctypes;
 
 {$ifndef os2}
   {$LinkLib c}
-    {$LinkLib libX11.so.6}
+   {$ifdef darwin}
+  {$LinkLib libX11.dylib}
+ {$else}
+  {$if defined(netbsd) or defined(openbsd) or defined(dragonfly)}
+   {$LinkLib libX11.so}
+ {$else}
+  {$LinkLib libX11.so.6}  
+ {$endif}
+{$endif}
 {$endif}
 
 {
