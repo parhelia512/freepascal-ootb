@@ -1,7 +1,7 @@
-unit mxutil;
+unit xutil;
 interface
 uses
-  ctypes,mx,mxlib,mkeysym;
+  ctypes, x, xlib, keysym;
 
 {$define MACROS}
 

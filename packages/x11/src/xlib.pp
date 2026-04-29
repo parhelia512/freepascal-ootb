@@ -1,8 +1,8 @@
-unit mxlib;
+unit xlib;
 interface
 {$mode objfpc}
 uses
-  ctypes,mx;
+  ctypes, x;
 {$define MACROS}
 
 {$ifndef os2}
