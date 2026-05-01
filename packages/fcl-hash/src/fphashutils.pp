@@ -18,6 +18,7 @@ unit fphashutils;
 
 {$mode ObjFPC}{$H+}
 {$modeswitch advancedrecords}
+
 interface
 
 uses
@@ -41,11 +42,13 @@ Procedure BytesToHexStr(out aHexStr : AnsiString; aBytes : PByte; aSize : Intege
 Procedure BytesToHexStr(out aHexStr : AnsiString; aBytes : TBytes); overload;
 Function BytesToHexStr(aBytes : TBytes) : AnsiString; overload;
 Procedure BytesToHexStrAppend(aBytes : TBytes;var aHexStr : AnsiString);
+Function StringToHex(const s: string): string; overload;
 
-procedure BytesEncodeBase64(Source: Tbytes; out Dest: AnsiString; const IsURL, MultiLines, Padding: Boolean);
+Procedure BytesEncodeBase64(Source: Tbytes; out Dest: AnsiString; const IsURL, MultiLines, Padding: Boolean);
 Function BytesEncodeBase64(Source: Tbytes; const IsURL, MultiLines, Padding: Boolean) : AnsiString;
+Function BytesToStr(const aBytes: TBytes): string; overload;
 
-function CryptoGetRandomBytes(Buffer: PByte; const Count: Integer): Boolean;
+Function CryptoGetRandomBytes(Buffer: PByte; const Count: Integer; ZeroBytesAllowed: boolean = true): Boolean;
 Function ExtractBetween(const ASource,aStart,aEnd : String) : String;
 
 Type
@@ -56,6 +59,9 @@ var
 
 
 implementation
+
+Const
+  HexDigits: Array[0..15] of AnsiChar = ('0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F');
 
 procedure BytesFromVar(out aBytes: TBytes; aLocation: Pointer; aSize: Integer);
 
@@ -149,10 +155,6 @@ begin
 end;
 
 procedure BytesToHexStr(out aHexStr : AnsiString; aBytes : PByte; aSize : Integer);
-
-Const
-  Digits: Array[0..15] of AnsiChar = ('0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F');
-
 var
   I: Integer;
   PB : Pbyte;
@@ -167,9 +169,9 @@ begin
   PC:=PChar(aHexStr);
   for I:=0 to aSize-1 do
     begin
-    PC^:=Digits[(PB^ shr 4) and $0f];
+    PC^:=HexDigits[PB^ shr 4];
     Inc(PC);
-    PC^:=Digits[PB^ and $0f];
+    PC^:=HexDigits[PB^ and $f];
     Inc(PC);
     Inc(PB);
     end;
@@ -191,6 +193,12 @@ procedure BytesToHexStrAppend(aBytes: TBytes; var aHexStr: AnsiString);
 
 begin
   aHexStr:=aHexStr+BytesToHexStr(aBytes);
+end;
+
+function StringToHex(const s: string): string;
+begin
+  if s='' then exit;
+  BytesToHexStr(Result,@s[1],length(s));
 end;
 
 function GetBase64EncodedSize(const SourceSize: Int32; const MultiLines: Boolean): Int32;
@@ -339,12 +347,20 @@ begin
   BytesEncodeBase64(Source,Result,IsURL, MultiLines, Padding);
 end;
 
+function BytesToStr(const aBytes: TBytes): string;
+begin
+  SetLength(Result{%H-},length(aBytes));
+  if aBytes=nil then exit;
+  Move(aBytes[0],Result[1],length(aBytes));
+end;
+
 type
   TUInt32 = Cardinal;
   PUInt32Array = ^TUInt32;
   TLecuyer = record
     rs1, rs2, rs3: UInt32;
     SeedCount: UInt32;
+    ZeroBytesAllowed: boolean;
     procedure Seed;
     function Next: UInt32;
   end;
@@ -364,7 +380,7 @@ begin
     rs1 := VLI[0];
     rs2 := VLI[1];
     rs3 := VLI[2];
-  Until ((RS1>1) and (rs2>7) and (RS3>15)) or (I>100);
+  Until ((rs1>1) and (rs2>7) and (rs3>15)) or (I>100);
   if I>100 then
     Raise EHashUtil.Create('Cannot seed Lecuyer: no suitable random bytes');
   SeedCount := 1;
@@ -372,26 +388,36 @@ end;
 
 function TLecuyer.Next: UInt32;
 begin
-  if SeedCount and $FFFF = 0 then // reseed after 256KB of output
-    Seed
-  else
-    Inc(SeedCount);
-  Result := rs1;
-  rs1 := ((Result and -2) shl 12) xor (((Result shl 13) xor Result) shr 19);
-  Result := rs2;
-  rs2 := ((Result and -8) shl 4) xor (((Result shl 2) xor Result) shr 25);
-  Result := rs3;
-  rs3 := ((Result and -16) shl 17) xor (((Result shl 3) xor Result) shr 11);
-  Result := rs1 xor rs2 xor result;
+  repeat
+    if SeedCount and $FFFF = 0 then // reseed after 256KB of output
+      Seed
+    else
+      Inc(SeedCount);
+    Result := rs1;
+    rs1 := ((Result and -2) shl 12) xor (((Result shl 13) xor Result) shr 19);
+    Result := rs2;
+    rs2 := ((Result and -8) shl 4) xor (((Result shl 2) xor Result) shr 25);
+    Result := rs3;
+    rs3 := ((Result and -16) shl 17) xor (((Result shl 3) xor Result) shr 11);
+    Result := rs1 xor rs2 xor Result;
+    if ZeroBytesAllowed then exit;
+    if ((Result and $ff)<>0)
+        and ((Result and $ff00)<>0)
+        and ((Result and $ff0000)<>0)
+        and ((Result and $ff000000)<>0) then
+      exit;
+  until false;
 end;
 
-function CryptoGetRandomBytes(Buffer: PByte; const Count: Integer): Boolean;
+function CryptoGetRandomBytes(Buffer: PByte; const Count: Integer;
+  ZeroBytesAllowed: boolean): Boolean;
 var
   I, Remainder, Rounds: Integer;
   Lecuyer: TLecuyer;
   R: UInt32;
 begin
   Result := True;
+  Lecuyer.ZeroBytesAllowed:=ZeroBytesAllowed;
   Lecuyer.Seed;
   Rounds := Count div SizeOf(UInt32);
   for I := 0 to Rounds-1 do
@@ -418,21 +444,21 @@ begin
   P2:=Pos(aEnd,ASource,P1);
   if P2<=0 then exit;
   Result:=Copy(aSource,P1,P2-P1);
-
 end;
 
 function IntGetRandomNumber(aBytes : PByte; aCount: Integer): Boolean;
 
 Var
-  i : Integer;
+  i: Integer;
   P : PByte;
-
 begin
   P:=aBytes;
-  For I:=0 to aCount-1 do
+  i:=0;
+  while i<aCount do
     begin
     P^:=Random(256);
     Inc(P);
+    inc(i);
     end;
   Result:=True;
 end;

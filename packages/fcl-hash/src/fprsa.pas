@@ -6,8 +6,10 @@ unit fprsa;
 
 interface
 
+{off $DEFINE CRYPTO_DEBUG}
+
 uses
-  sysutils, Classes, fpTLSBigInt, fphashutils, fpasn;
+  sysutils, Classes, sha1, fpsha256, fpTLSBigInt, fphashutils, fpasn, basenenc;
 
 const
   RSAPublicKeyOID = '1.2.840.113549.1.1.1';
@@ -22,25 +24,38 @@ type
     DP: PBigInt;            // d mod (p-1)
     DQ: PBigInt;            // d mod (q-1)
     QInv: PBigInt;          // q^-1 mod p
-    ModulusLen: Integer;
+    ModulusLen: Integer; // in bytes
+    ModulusBits: Integer; // in bits
     Context: TBigIntContext;
   end;
 
+  { TX509RSAPrivateKey }
+
   TX509RSAPrivateKey = record
     Version: integer;
-    Modulus,
-    PublicExponent,
-    PrivateExponent,
-    Prime1,
-    Prime2,
-    Exponent1,
-    Exponent2,
-    Coefficient: TBytes;
+    Modulus,             // m or n
+    PublicExponent,      // e
+    PrivateExponent,     // d
+    Prime1,              // p
+    Prime2,              // q
+    Exponent1,           // dp
+    Exponent2,           // dq
+    Coefficient: TBytes; // qi
+    procedure InitWithHexStrings(const n, e, d, p, q, dp, dq, qi: string);
+    procedure InitWithBase64UrlEncoded(const n, e, d, p, q, dp, dq, qi: string);
+    procedure WriteASN(ms: TMemoryStream);
+    function AsDER: TBytes;
   end;
 
+  { TX509RSAPublicKey }
+
   TX509RSAPublicKey = record
-    Modulus: TBytes;
-    Exponent: TBytes;
+    Modulus: TBytes; // m or n
+    Exponent: TBytes; // e
+    procedure InitWithHexStrings(const n, e: string);
+    procedure InitWithBase64UrlEncoded(const n, e: string);
+    procedure WriteASN(ms: TMemoryStream);
+    function AsDER: TBytes;
   end;
 
 procedure RSACreate(out RSA: TRSA);
@@ -58,26 +73,86 @@ procedure RSAInitFromPrivateKeyDER(var RSA: TRSA; const PrivateKeyDER: TBytes);
 procedure X509RsaPrivateKeyInitFromDER(out RSA: TX509RSAPrivateKey; const PrivateKeyDER: TBytes);
 
 { Perform PKCS1.5 Encryption or Signing
-  Context: The RSA context containing Private and/or Public keys
+  RSA: The RSA context containing Private and/or Public keys
   Input: The data to be encrypted
   Len: The size of the input data in bytes (Must be <= Modulus length - 11 to
        make the padding at least 8 bytes as recommended by RFC2313)
   Output: The buffer for the encrypted result (Must always be Modulus length)
   Sign: If true then sign instead of encrypting
-  Return: The number of bytes encrypted or -1 on error }
+  Result: The number of bytes encrypted or on error -1 or exception }
 function RSAEncryptSign(var RSA: TRSA; const Input: PByte; Len: Integer; Output: PByte; Sign: Boolean): Integer;
 
 { Perform PKCS1.5 Decryption or Verification
-  Context: The RSA context containing Private and/or Public keys
+  RSA: The RSA context containing Private and/or Public keys
   Input: The data to be decrypted (Must always be Modulus length)
   Output: The buffer for the decrypted result
   Len: The size of the output buffer in bytes
   Verify: If true then verify instead of decrypting
-  Return: The number of bytes decrypted or -1 on error }
+  Result: The number of bytes decrypted or on error -1 or exception }
 function RSADecryptVerify(var RSA: TRSA; const Input: PByte; Output: PByte; Len: Integer; Verify: Boolean): Integer;
 
 function RS256VerifyFromPublicKeyHexa(const PublicKeyHexa, SignatureBaseHash, Signature: String): Boolean;
 function TestRS256Verify: Boolean;
+
+function EncodeDigestInfoSHA(SHAType, len: byte): TBytes;
+
+//------------------------------------------------------------------------------
+// RSA-PSS
+const
+  RSA_PSS_SaltLen_HashLen = -1;
+  RSA_PSS_SaltLen_Auto = -2; //  only for verify
+  RSA_PSS_SaltLen_Max = -3;
+type
+  TRSAHashFunction = procedure(Input: PByte; InLen: Integer; Output: PByte);
+
+  { TRSAHashFuncInfo }
+
+  TRSAHashFuncInfo = record
+    Func: TRSAHashFunction;
+    DigestLen: Word;
+    procedure InitSHA1;
+    procedure InitSHA256;
+  end;
+  PRSAHashFuncInfo = ^TRSAHashFuncInfo;
+
+{ Perform PSASSA-PSS signing using MGF1 and a hash function
+  RSA: The RSA context containing the private key
+  Input: The data to be signed
+  Len: The size of the input data in bytes (Must be <= Modulus length - HashLen - SaltLen - 2)
+  Output: The buffer for the signature result (Must always be RSA.ModulusLen)
+  SaltLen: length in bytes of the random number Salt, can be RSA_PSS_SaltLen_HashLen or RSA_PSS_SaltLen_Max
+  Result: The number of bytes of the signature or on error -1 or exception }
+function RSASSA_PS256_Sign(var RSA: TRSA; Input: PByte; Len: Integer;
+  Output: PByte; SaltLen: integer = RSA_PSS_SaltLen_HashLen): Integer;
+function RSASSA_PSS_Sign(var RSA: TRSA; Input: PByte; Len: Integer;
+  HashFunc: PRSAHashFuncInfo; Output: PByte; SaltLen: integer = RSA_PSS_SaltLen_HashLen): Integer;
+
+{ Perform PSASSA-PSS verification using MGF1 and a hash function
+  RSA: The RSA context containing the public key
+  Input: The data to be verified
+  Len: The size of the input data in bytes (Must be <= Modulus length - HashLen - SaltLen - 2)
+  Signature: The buffer for the encrypted result (Must always be RSA.ModulusLen)
+  SaltLen: length in bytes of the random number Salt,
+       can be RSA_PSS_SaltLen_HashLen, RSA_PSS_SaltLen_Auto or RSA_PSS_SaltLen_Max
+  Result: 0 on success or an error number }
+function RSASSA_PSS_Verify(var RSA: TRSA; Input: PByte; Len: Integer;
+  HashFunc: PRSAHashFuncInfo; Signature: PByte; SaltLen: integer = RSA_PSS_SaltLen_HashLen): int64;
+
+function EMSA_PSS_Encode(Input: PByte; InLen: Integer; HashFunc: PRSAHashFuncInfo;
+  Output: PByte; OutLen: integer; ModBits: integer; SaltLen: integer = RSA_PSS_SaltLen_HashLen): int64;
+function EMSA_PSS_Verify(Msg: PByte; MsgLen: DWord;
+  EncodedMsg: PByte; EncodedBits: DWord; HashFunc: PRSAHashFuncInfo;
+  SaltLen: integer = RSA_PSS_SaltLen_HashLen): int64;
+
+// integer to octetstring
+function I2OSP(c: DWord; Len: integer): string; overload;
+procedure I2OSP(c: DWord; Dest: PByte; Len: integer); overload;
+
+// MGF1 (Mask Generating Function 1) of PKCS1 (Public Key Cryptography Standard #1)
+function MGF1(const InputStr: string; HashFunc: PRSAHashFuncInfo; Len: integer): string; overload;
+procedure MGF1(Input: PByte; InLen: Integer; HashFunc: PRSAHashFuncInfo; Output: PByte; OutLen: integer); overload;
+function MGF1SHA1(const InputStr: string; Len: integer): string;
+function MGF1SHA256(const InputStr: string; Len: integer): string;
 
 implementation
 
@@ -121,6 +196,7 @@ procedure RsaInitFromPublicKey(var RSA: TRSA; const Modulus, Exponent: String);
 begin
   RSA.ModulusLen := length(Modulus);
   RSA.M := BIImport(RSA.Context, Modulus);
+  RSA.ModulusBits :=  BIBitCount(RSA.M);
   BISetMod(RSA.Context, RSA.M, BIGINT_M_OFFSET);
   RSA.E := BIImport(RSA.Context, Exponent);
   BIPermanent(RSA.E);
@@ -135,6 +211,7 @@ begin
     Exit;
   RSA.ModulusLen := length(RSAPublicKey.Modulus);
   RSA.M := BIImport(RSA.Context, RSAPublicKey.Modulus);
+  RSA.ModulusBits := BIBitCount(RSA.M);
   BISetMod(RSA.Context, RSA.M, BIGINT_M_OFFSET);
   RSA.E := BIImport(RSA.Context, RSAPublicKey.Exponent);
   BIPermanent(RSA.E);
@@ -151,7 +228,7 @@ end;
 procedure X509RsaPublicKeyInitFromDER(out RSA: TX509RSAPublicKey;
   const PublicKeyDER: TBytes);
 var
-  ASNType, ASNSize: integer;
+  ASNType, ASNSize, i: integer;
   List: TStringList;
 begin
   RSA:=Default(TX509RSAPublicKey);
@@ -163,7 +240,7 @@ begin
     ASNDebugList('X509RsaPublicKeyInitFromDER',List);
     {$ENDIF}
 
-    if List.Count<7 then
+    if List.Count<6 then
       raise Exception.Create('20220428180055');
 
     // check sequence
@@ -183,24 +260,29 @@ begin
     if List[2]<>RSAPublicKeyOID then
       raise Exception.Create('20220428181542');
 
-    // check null
-    ASNParse_GetItem(List,3,ASNType,ASNSize);
-    if ASNType<>ASN1_NULL then
-      raise Exception.Create('20220428181659');
+    // check optional null
+    i:=3;
+    ASNParse_GetItem(List,i,ASNType,ASNSize);
+    if ASNType=ASN1_NULL then
+      inc(i);
 
-    // check optional algorithm params
-    ASNParse_GetItem(List,4,ASNType,ASNSize);
+    // check algorithm params
+    ASNParse_GetItem(List,i,ASNType,ASNSize);
     if ASNType<>ASN1_BITSTR then
       raise Exception.Create('20220428181913');
+    inc(i);
+
+    if i+2>List.Count then
+      raise Exception.Create('20220428180055');
 
     // check sequence
-    ASNParse_GetItem(List,5,ASNType,ASNSize);
+    ASNParse_GetItem(List,i,ASNType,ASNSize);
     if ASNType<>ASN1_SEQ then
       raise Exception.Create('20220428181933');
 
     // public key
-    RSA.Modulus:=ASNParse_GetIntBytes(List,6,20220428182235);
-    RSA.Exponent:=ASNParse_GetIntBytes(List,7,20220428182241);
+    RSA.Modulus:=ASNParse_GetIntBytes(List,i+1,20220428182235);
+    RSA.Exponent:=ASNParse_GetIntBytes(List,i+2,20220428182241);
 
     {$IFDEF TLS_DEBUG}
     writeln('X509RsaPublicKeyInitFromDER: ');
@@ -233,6 +315,7 @@ begin
     Exit;
   RSA.ModulusLen := length(RSAPrivateKey.Modulus);
   RSA.M := BIImport(RSA.Context, RSAPrivateKey.Modulus);
+  RSA.ModulusBits := BIBitCount(RSA.M);
   BISetMod(RSA.Context, RSA.M, BIGINT_M_OFFSET);
   RSA.E := BIImport(RSA.Context, RSAPrivateKey.PublicExponent);
   BIPermanent(RSA.E);
@@ -317,6 +400,9 @@ var
   Decrypted: PBigInt;
   Encrypted: PBigInt;
   Block: array[0..RSA_MODULUS_BYTES_MAX-1] of Byte;
+  {$IFDEF CRYPTO_DEBUG}
+  i: integer;
+  {$ENDIF}
 begin
   Result := -1;
   if Input = nil then
@@ -352,8 +438,13 @@ begin
       Imported[1]:=2;
 
       // Pad with random non-zero bytes
-      if not CryptoGetRandomBytes(@Imported[2], Padding) then
+      if not CryptoGetRandomBytes(@Imported[2], Padding, false) then
         Exit;
+      {$IFDEF CRYPTO_DEBUG}
+      for i:=0 to Padding-1 do
+        if Imported[2+i]=0 then
+          raise Exception.Create('20220429000653');
+      {$ENDIF}
     end;
 
     // Trailing zero after padding bytes
@@ -363,10 +454,11 @@ begin
     System.Move(Input^,Imported[3 + Padding],Len);
 
     {$IFDEF CRYPTO_DEBUG}
-    writeln('RSAEncryptSign - Imported Size = ' + IntToStr(Size) + ' Imported = ',Imported,Size);
+    writeln('RSAEncryptSign - Imported Size = ' + IntToStr(Size) + ' Len = ',Len);
     {$ENDIF}
 
     // Encrypt the Block
+    // Note: the RSA.M was set in RSAInitFromPublicKey
     Decrypted:=BIImport(RSA.Context,Imported,Size);
     if Sign then
     begin
@@ -381,7 +473,7 @@ begin
     BIExport(RSA.Context,Encrypted,Output,Size); // this releases Encrypted
 
     {$IFDEF CRYPTO_DEBUG}
-    writeln('RSAEncryptSign - Output Size = ' + IntToStr(Size) + ' Output = ',Output,Size);
+    writeln('RSAEncryptSign - Output Size = ' + IntToStr(Size) + ' Len = ',Len);
     {$ENDIF}
 
     // Return Result
@@ -419,29 +511,44 @@ begin
   begin
     // Verify with Public Key
     RSA.Context.ModOffset := BIGINT_M_OFFSET;
-    Decrypted := BIModPower(RSA.Context, Encrypted, RSA.E);
+    Decrypted := BIModPower(RSA.Context, Encrypted, RSA.E); // this releases Encrypted
   end else
   begin
     // Decrypt with Private Key
-    Decrypted := BICRT(RSA.Context,Encrypted,RSA.DP,RSA.DQ,RSA.P,RSA.Q,RSA.QInv);
+    Decrypted := BICRT(RSA.Context,Encrypted,RSA.DP,RSA.DQ,RSA.P,RSA.Q,RSA.QInv); // this releases Encrypted
   end;
-  Exported := @Block;
+  Exported := @Block[0];
   if Size > RSA_MODULUS_BYTES_MAX then
   begin
     Exported := GetMem(Size);
     if Exported = nil then
+    begin
+      {$IFDEF CRYPTO_DEBUG}
+      writeln('RSADecryptVerify GetMem failed');
+      {$ENDIF}
       Exit;
+    end;
   end;
   try
-    BIExport(RSA.Context, Decrypted, Exported, Size);
+    BIExport(RSA.Context, Decrypted, Exported, Size); // this releases Decrypted
     if Exported[Count] <> 0 then
+    begin
+      {$IFDEF CRYPTO_DEBUG}
+      writeln('RSADecryptVerify leading zero missing');
+      {$ENDIF}
       Exit; // Check Leading Zero
+    end;
     Inc(Count);
     if Verify then
     begin
       // Check Block Type 1
       if Exported[Count] <> 1 then
+      begin
+        {$IFDEF CRYPTO_DEBUG}
+        writeln('RSADecryptVerify Verify Blockt Type<>1');
+        {$ENDIF}
         Exit;
+      end;
       Inc(Count);
       while (Exported[Count] = $FF) and (Count < Size) do
       begin
@@ -453,7 +560,12 @@ begin
     begin
       // Check Block Type 2
       if Exported[Count] <> 2 then
+      begin
+        {$IFDEF CRYPTO_DEBUG}
+        writeln('RSADecryptVerify Decrypt Blockt Type<>2');
+        {$ENDIF}
         Exit;
+      end;
       Inc(Count);
       while (Exported[Count] <> 0) and (Count < Size) do
       begin
@@ -464,13 +576,26 @@ begin
     end;
     // Check trailing zero byte and padding size
     if (Count = Size) or (Padding < 8) then
+    begin
+      {$IFDEF CRYPTO_DEBUG}
+      writeln('RSADecryptVerify invalid padding');
+      {$ENDIF}
       Exit;
+    end;
     if Exported[Count] <> 0 then
+    begin
+      {$IFDEF CRYPTO_DEBUG}
+      writeln('RSADecryptVerify after padding zero missing');
+      {$ENDIF}
       Exit;
+    end;
     Inc(Count);
     Result := Size-Count;
     if Len < Result then
     begin
+      {$IFDEF CRYPTO_DEBUG}
+      writeln('RSADecryptVerify Output too small');
+      {$ENDIF}
       Result := -1;
       Exit;
     end;
@@ -526,7 +651,7 @@ begin
       Exit;
     if not ASNFetchOID(DataP, DataEnd, OID) then  // OID: Algorithm
       Exit;
-    if not ASNFetch(DataP, DataEnd, ASNType, ASNSize) then  // ASN1_NULL OctetString: Digest
+    if not ASNFetch(DataP, DataEnd, ASNType, ASNSize) then  // ASN1_NULL
       Exit;
     if ASNType = ASN1_NULL then
     begin
@@ -596,6 +721,492 @@ begin
   Hash:=HexStrToString(_Hash);
   Signature:=HexStrToString(_Signature);
   Result := RsaVerify(Modulus, Exponent, Hash, Signature);
+end;
+
+function EncodeDigestInfoSHA(SHAType, len: byte): TBytes;
+begin
+  Result:= [
+    ASN1_SEQ, 17 + len,
+      ASN1_SEQ, 13,
+        ASN1_OBJID, 9, 2*40 + 16, $86, $48, 1, 101, 3, 4, 2, SHAType,
+        ASN1_NULL, 0,
+      ASN1_OCTSTR, len
+    ];
+end;
+
+function RSASSA_PS256_Sign(var RSA: TRSA; Input: PByte; Len: Integer;
+  Output: PByte; SaltLen: integer): Integer;
+var
+  HashFunc: TRSAHashFuncInfo;
+begin
+  HashFunc.InitSHA256;
+  Result:=RSASSA_PSS_Sign(RSA,Input,Len,@HashFunc,Output,SaltLen);
+end;
+
+function RSASSA_PSS_Sign(var RSA: TRSA; Input: PByte; Len: Integer;
+  HashFunc: PRSAHashFuncInfo; Output: PByte; SaltLen: integer): Integer;
+var
+  EncodedMsg: TBytes;
+  ModBits, Size: Integer;
+  EncodedBI, Encrypted: PBigInt;
+begin
+  Result:=-1;
+
+  Size:=RSA.ModulusLen;
+  if ((RSA.ModulusBits+7) div 8)<>Size then
+    raise Exception.Create('20220502000942 RSA n has leading zeroes');
+  ModBits:=(RSA.ModulusBits-1) and 7;
+  if ModBits=0 then
+    ; //dec(Size); ToDo
+
+  SetLength(EncodedMsg{%H-},Size);
+  EMSA_PSS_Encode(Input,Len, HashFunc, @EncodedMsg[0], length(EncodedMsg), ModBits, SaltLen);
+
+  EncodedBI:=BIImport(RSA.Context,EncodedMsg);
+  // Sign with Private Key
+  Encrypted:=BICRT(RSA.Context,EncodedBI,RSA.DP,RSA.DQ,RSA.P,RSA.Q,RSA.QInv); // this releases EncodedBI
+
+  BIExport(RSA.Context,Encrypted,Output,Size); // this releases Encrypted
+
+  Result:=Size;
+end;
+
+function RSASSA_PSS_Verify(var RSA: TRSA; Input: PByte; Len: Integer;
+  HashFunc: PRSAHashFuncInfo; Signature: PByte; SaltLen: integer): int64;
+// RFC 3447 8.1.2 Signature verification operation
+var
+  BISignature, BIEncodedMsg: PBigInt;
+  Size: Integer;
+  EncodedMsg: TBytes;
+  EncodedMsgP: PByte;
+begin
+  Result:=0;
+
+  // "1. Length checking: If the length of the signature S is not k octets, error"
+  Size:=RSA.ModulusLen;
+  if ((RSA.ModulusBits+7) div 8)<>Size then
+    // RSA n has leading zeroes
+    exit(20220502214238);
+
+  // 2. using RSAVP1 verification primitive with public key
+  BISignature := BIImport(RSA.Context, Signature, Size);
+  RSA.Context.ModOffset := BIGINT_M_OFFSET;
+  BIEncodedMsg := BIModPower(RSA.Context, BISignature, RSA.E); // this releases BISignature
+
+  // "c. Convert the message representative m to an encoded message EM
+  //     of length emLen = \ceil ((modBits - 1)/8) octets, where modBits
+  //     is the length in bits of the RSA modulus n
+  //     Note that emLen will be one less than k if modBits - 1 is
+  //     divisible by 8 and equal to k otherwise."
+
+  SetLength(EncodedMsg{%H-},Size);
+  BIExport(RSA.Context, BIEncodedMsg, @EncodedMsg[0], Size); // this releases BIEncodedMsg
+  EncodedMsgP:=@EncodedMsg[0];
+  if ((RSA.ModulusBits-1) and 7)=0 then
+  begin
+    if (EncodedMsg[0]<>0) then
+      exit(20220502213942);
+    inc(EncodedMsgP);
+  end;
+
+  // "3. EMSA-PSS verification
+  //  Result = EMSA-PSS-VERIFY (M, EM, modBits - 1)."
+  Result:=EMSA_PSS_Verify(Input,Len,EncodedMsgP,RSA.ModulusBits-1,HashFunc,SaltLen);
+end;
+
+function EMSA_PSS_Encode(Input: PByte; InLen: Integer;
+  HashFunc: PRSAHashFuncInfo; Output: PByte; OutLen: integer; ModBits: integer;
+  SaltLen: integer): int64;
+// RFC 3447 9.1.1 Encoding operation
+var
+  ZeroesHashSalt, H, DB, DBMask, MaskedDB: TBytes;
+  MsgHashP, SaltP: PByte;
+  Padding, HashLen, i: Integer;
+begin
+  Result:=0;
+
+  HashLen:=HashFunc^.DigestLen;
+
+  if SaltLen = RSA_PSS_SaltLen_HashLen then
+    SaltLen:=HashLen
+  else if SaltLen = RSA_PSS_SaltLen_Max then
+    SaltLen:=OutLen-HashLen-2
+  else if SaltLen < 0 then
+    exit(20220501233610);
+
+  // check OutLen
+  if HashLen + SaltLen + 2 > OutLen then
+    exit(20220501221837);
+
+  // ZeroesHashSalt := 8 zeroes + InputHash + Salt
+  SetLength(ZeroesHashSalt{%H-},8+HashLen+SaltLen);
+  FillByte(ZeroesHashSalt[0],8,0);
+  MsgHashP:=@ZeroesHashSalt[8];
+  HashFunc^.Func(Input,InLen,MsgHashP);
+  SaltP:=MsgHashP+HashLen;
+  if SaltLen>0 then
+    if not CryptoGetRandomBytes(SaltP,SaltLen) then
+      exit(20220501222748);
+
+  // hash ZeroesHashSalt
+  SetLength(H{%H-},HashLen);
+  HashFunc^.Func(@ZeroesHashSalt[0],length(ZeroesHashSalt),@H[0]);
+
+  // DB := padding zeroes + #1 + Salt
+  SetLength(DB{%H-},OutLen-HashLen-1);
+  Padding:=length(DB)-SaltLen-1;
+  if Padding>0 then
+    FillByte(DB[0],Padding,0);
+  DB[Padding]:=1;
+  System.Move(SaltP^,DB[Padding+1],SaltLen);
+
+  // dbMask := MGF(H, OutLen - HashLen - 1)
+  SetLength(DBMask{%H-},length(DB));
+  MGF1(@H[0],HashLen,HashFunc,@DBMask[0],length(DB));
+
+  // MaskedDB := DB xor DBMask
+  SetLength(MaskedDB{%H-},length(DB));
+  for i:=0 to length(DB) do
+    MaskedDB[i]:=DB[i] xor DBMask[i];
+
+  // set the leftmost bits of leftmost byte to zero
+  if ModBits>0 then
+    MaskedDB[0] := MaskedDB[0] and ($ff shr (8-ModBits));
+
+  System.Move(MaskedDB[0],Output^,length(MaskedDB));
+  inc(Output,length(MaskedDB));
+  System.Move(H[0],Output^,length(H));
+  inc(Output,length(H));
+  Output^:=$bc;
+end;
+
+function EMSA_PSS_Verify(Msg: PByte; MsgLen: DWord; EncodedMsg: PByte;
+  EncodedBits: DWord; HashFunc: PRSAHashFuncInfo; SaltLen: integer): int64;
+// RFC 3447 9.1.2 Verification operation
+var
+  HashLen: Word;
+  EncodedLen, DBLen, i, Padding: DWord;
+  MaskedDB, HashP, SaltP: PByte;
+  Hash, DBMask, Msg2, Hash2, DB: TBytes;
+begin
+  Result:=0;
+
+  HashLen:=HashFunc^.DigestLen;
+  EncodedLen:=(EncodedBits+7) div 8; // to octets round up
+
+  if SaltLen = RSA_PSS_SaltLen_HashLen then
+    SaltLen:=HashLen
+  else if SaltLen = RSA_PSS_SaltLen_Auto then
+  else if SaltLen = RSA_PSS_SaltLen_Max then
+  begin
+    if EncodedLen < HashLen - 2 then
+      exit(20220502220403);
+    SaltLen:=EncodedLen - HashLen - 2;
+  end
+  else if SaltLen < RSA_PSS_SaltLen_Max then
+    exit(20220502205808);
+
+  // "2. Let mHash = Hash(M), an octet string of length hLen."
+  SetLength(Hash{%H-},HashLen);
+  HashFunc^.Func(Msg,MsgLen,@Hash[0]);
+
+  // "3.  If emLen < hLen + sLen + 2, error."
+  if SaltLen = RSA_PSS_SaltLen_Auto then
+  begin
+    if EncodedLen < HashLen + 2 then
+      exit(20220502222313);
+  end else if EncodedLen < HashLen + SaltLen + 2 then
+    exit(20220502205834);
+
+  // "4. If the rightmost octet of EM does not have hexadecimal value 0xbc, error."
+  if EncodedMsg[EncodedLen-1]<>$bc then
+    exit(20220502205918);
+
+  // "5. Let maskedDB be the leftmost emLen - hLen - 1 octets of EM, and let H be the next hLen octets."
+  MaskedDB:=@EncodedMsg[0];
+  DBLen:=EncodedLen-HashLen-1;
+  HashP:=MaskedDB+DBLen;
+
+  // "6.  If the leftmost 8emLen - emBits bits of the leftmost octet in
+  //     maskedDB are not all equal to zero, error"
+  if MaskedDB^ and ($ff shl (EncodedBits and 7))>0 then
+    exit(20220502210729);
+
+  // "7.  Let dbMask = MGF(H, emLen - hLen - 1)."
+  SetLength(DBMask{%H-},DBLen);
+  MGF1(HashP,HashLen,HashFunc,@DBMask[0],DBLen);
+
+  // "8.  Let DB = maskedDB xor dbMask."
+  SetLength(DB{%H-},DBLen);
+  for i:=0 to DBLen-1 do
+    DB[i]:=MaskedDB[i] xor DBMask[i];
+
+  // 9.  Set the leftmost 8emLen - emBits bits of the leftmost octet in DB to zero.
+  if EncodedBits and 7 > 0 then
+    DB[0]:=DB[0] and ($ff shr (8-(EncodedBits and 7)));
+
+  // "10. If the emLen - hLen - sLen - 2 leftmost octets of DB are not zero
+  //     or if the octet at position emLen - hLen - sLen - 1 (the leftmost
+  //     position is "position 1") does not have hexadecimal value 0x01, error.
+  if SaltLen = RSA_PSS_SaltLen_Auto then
+  begin
+    Padding:=0;
+    while DB[Padding]=0 do
+    begin
+      inc(Padding);
+      if Padding=DBLen then
+        exit(20220502222756);
+    end;
+    SaltLen:=EncodedLen-HashLen-Padding-2;
+  end else begin
+    Padding:=EncodedLen-HashLen-SaltLen-2;
+    for i:=0 to Padding-1 do
+      if DB[i]<>0 then
+        exit(20220502211521);
+  end;
+  if DB[Padding]<>$01 then
+    exit(20220502211919);
+
+  // "11.  Let salt be the last sLen octets of DB."
+  SaltP:=@DB[0]+DBLen-SaltLen;
+
+  // "12.  Let M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt ;
+  //       M' is an octet string of length 8 + hLen + sLen with eight
+  //       initial zero octets.
+  SetLength(Msg2{%H-},8 + HashLen + SaltLen);
+  FillByte(Msg2[0],8,0);
+  System.Move(Hash[0],Msg2[8],HashLen);
+  System.Move(SaltP^,Msg2[8+HashLen],SaltLen);
+
+  // "13. Let H' = Hash(M'), an octet string of length hLen."
+  SetLength(Hash2{%H-},HashLen);
+  HashFunc^.Func(@Msg2[0],length(Msg2),@Hash2[0]);
+
+  // "14. If H = H', output consistent. Otherwise, output inconsistent."
+  if not CompareMem(@Hash[0],@Hash2[0],HashLen) then
+    exit(20220502212747);
+end;
+
+function I2OSP(c: DWord; Len: integer): string;
+begin
+  SetLength(Result{%H-},Len);
+  I2OSP(c,@Result[1],Len);
+end;
+
+procedure I2OSP(c: DWord; Dest: PByte; Len: integer);
+var
+  i: Integer;
+begin
+  for i:=Len-1 downto 0 do
+  begin
+    Dest[i]:=c and $ff;
+    c:=c shr 8;
+  end;
+  if c>0 then
+    raise Exception.Create('20220501190124');
+end;
+
+function MGF1(const InputStr: string; HashFunc: PRSAHashFuncInfo; Len: integer): string;
+begin
+  SetLength(Result{%H-},Len);
+  if Len=0 then exit;
+  MGF1(PByte(PChar(InputStr)){InputStr might be empty!},length(InputStr), HashFunc, @Result[1], Len);
+end;
+
+procedure MGF1(Input: PByte; InLen: Integer; HashFunc: PRSAHashFuncInfo;
+  Output: PByte; OutLen: integer);
+var
+  p, CounterP, InpP: PByte;
+  i, r: Integer;
+  HashLen: Word;
+  InputCounted, Tmp: TBytes;
+  Counter: DWord;
+begin
+  Counter:=0;
+  HashLen:=HashFunc^.DigestLen;
+  SetLength(InputCounted{%H-},InLen+4);
+  InpP:=@InputCounted[0];
+  if InLen>0 then
+    System.Move(Input^,InpP^,InLen);
+  CounterP:=InpP+InLen;
+  p:=Output;
+  for i:=1 to (OutLen div HashLen) do
+  begin
+    I2OSP(Counter,CounterP,4);
+    HashFunc^.Func(InpP,InLen+4,p);
+    inc(p,HashLen);
+    inc(Counter);
+  end;
+  r:=OutLen mod HashLen;
+  if r>0 then
+  begin
+    I2OSP(Counter,CounterP,4);
+    SetLength(Tmp{%H-},HashLen);
+    HashFunc^.Func(InpP,InLen+4,@Tmp[0]);
+    System.Move(Tmp[0],p^,r);
+  end;
+end;
+
+function MGF1SHA1(const InputStr: string; Len: integer): string;
+var
+  HashFunc: TRSAHashFuncInfo;
+begin
+  HashFunc.InitSHA1;
+  Result:=MGF1(InputStr,@HashFunc,Len);
+end;
+
+function MGF1SHA256(const InputStr: string; Len: integer): string;
+var
+  HashFunc: TRSAHashFuncInfo;
+begin
+  HashFunc.InitSHA256;
+  Result:=MGF1(InputStr,@HashFunc,Len);
+end;
+
+procedure HashFuncSHA1(Input: PByte; InLen: Integer; Output: PByte);
+var
+  Context: TSHA1Context;
+  Digest: TSHA1Digest;
+begin
+  SHA1Init(Context);
+  SHA1Update(Context,Input^,InLen);
+  SHA1Final(Context,Digest);
+  System.Move(Digest[0],Output^,SizeOf(Digest));
+end;
+
+procedure HashFuncSHA256(Input: PByte; InLen: Integer; Output: PByte);
+var
+  SHA256: TSHA256;
+begin
+  SHA256.Init;
+  SHA256.Update(Input,InLen);
+  SHA256.Final;
+  System.Move(SHA256.Digest[0],Output^,SHA256_DIGEST_SIZE);
+end;
+
+{ TRSAHashFuncInfo }
+
+procedure TRSAHashFuncInfo.InitSHA1;
+begin
+  Func:=@HashFuncSHA1;
+  DigestLen:=SizeOf(TSHA1Digest);
+end;
+
+procedure TRSAHashFuncInfo.InitSHA256;
+begin
+  Func:=@HashFuncSHA256;
+  DigestLen:=SHA256_DIGEST_SIZE;
+end;
+
+{ TX509RSAPrivateKey }
+
+procedure TX509RSAPrivateKey.InitWithHexStrings(const n, e, d, p, q, dp, dq, qi: string
+  );
+begin
+  Version:=0;
+  Modulus:=HexStrToBytes(n);
+  PublicExponent:=HexStrToBytes(e);
+  PrivateExponent:=HexStrToBytes(d);
+  Prime1:=HexStrToBytes(p);
+  Prime2:=HexStrToBytes(q);
+  Exponent1:=HexStrToBytes(dp);
+  Exponent2:=HexStrToBytes(dq);
+  Coefficient:=HexStrToBytes(qi);
+end;
+
+procedure TX509RSAPrivateKey.InitWithBase64UrlEncoded(const n, e, d, p, q, dp,
+  dq, qi: string);
+begin
+  Version:=0;
+  Modulus:=Base64URL.Decode(n,false);
+  PublicExponent:=Base64URL.Decode(e,false);
+  PrivateExponent:=Base64URL.Decode(d,false);
+  Prime1:=Base64URL.Decode(p,false);
+  Prime2:=Base64URL.Decode(q,false);
+  Exponent1:=Base64URL.Decode(dp,false);
+  Exponent2:=Base64URL.Decode(dq,false);
+  Coefficient:=Base64URL.Decode(qi,false);
+end;
+
+procedure TX509RSAPrivateKey.WriteASN(ms: TMemoryStream);
+var
+  SeqBegin: Int64;
+begin
+  SeqBegin:=ASNWriteSequenceBegin(ms);
+  ASNWriteInt(Version,ms);
+  ASNWriteBigInt(Modulus,ms);
+  ASNWriteBigInt(PublicExponent,ms);
+  ASNWriteBigInt(PrivateExponent,ms);
+  ASNWriteBigInt(Prime1,ms);
+  ASNWriteBigInt(Prime2,ms);
+  ASNWriteBigInt(Exponent1,ms);
+  ASNWriteBigInt(Exponent2,ms);
+  ASNWriteBigInt(Coefficient,ms);
+  ASNWriteSequenceEnd(SeqBegin,ms);
+end;
+
+function TX509RSAPrivateKey.AsDER: TBytes;
+var
+  ms: TMemoryStream;
+begin
+  Result:=[];
+  ms:=TMemoryStream.Create;
+  try
+    WriteASN(ms);
+    SetLength(Result,ms.Size);
+    Move(ms.Memory^,Result[0],ms.Size);
+  finally
+    ms.Free;
+  end;
+end;
+
+{ TX509RSAPublicKey }
+
+procedure TX509RSAPublicKey.InitWithHexStrings(const n, e: string);
+begin
+  Modulus:=HexStrToBytes(n);
+  Exponent:=HexStrToBytes(e);
+end;
+
+procedure TX509RSAPublicKey.InitWithBase64UrlEncoded(const n, e: string);
+begin
+  Modulus:=Base64URL.Decode(n,false);
+  Exponent:=Base64URL.Decode(e,false);
+end;
+
+procedure TX509RSAPublicKey.WriteASN(ms: TMemoryStream);
+var
+  SeqBegin, AlgoSeqBegin, RSASeqBegin, BitStrBegin: Int64;
+begin
+  SeqBegin:=ASNWriteSequenceBegin(ms);
+  AlgoSeqBegin:=ASNWriteSequenceBegin(ms);
+  ASNWriteObjID(RSAPublicKeyOID,ms);
+  ASNWriteNull(ms);
+  ASNWriteSequenceEnd(AlgoSeqBegin,ms);
+
+  BitStrBegin:=ASNWriteBitStrBegin(ms);
+  RSASeqBegin:=ASNWriteSequenceBegin(ms);
+  ASNWriteBigInt(Modulus,ms);
+  ASNWriteBigInt(Exponent,ms);
+  ASNWriteSequenceEnd(RSASeqBegin,ms);
+  ASNWriteBitStrEnd(BitStrBegin,ms);
+
+  ASNWriteSequenceEnd(SeqBegin,ms);
+end;
+
+function TX509RSAPublicKey.AsDER: TBytes;
+var
+  ms: TMemoryStream;
+begin
+  Result:=[];
+  ms:=TMemoryStream.Create;
+  try
+    WriteASN(ms);
+    SetLength(Result,ms.Size);
+    Move(ms.Memory^,Result[0],ms.Size);
+  finally
+    ms.Free;
+  end;
 end;
 
 end.
