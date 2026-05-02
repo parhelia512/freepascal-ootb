@@ -687,6 +687,10 @@ type
   end;
 
   TBufDataset = class(TCustomBufDataset)
+  private
+    FCancelChangesOnRefresh: Boolean;
+  protected
+    procedure InternalRefresh; override;
   published
     property MaxIndexesCount;
     // TDataset stuff
@@ -718,6 +722,7 @@ type
     Property OnFilterRecord;
     Property OnNewRecord;
     Property OnPostError;
+    Property CancelChangesOnRefresh : Boolean Read FCancelChangesOnRefresh Write FCancelChangesOnRefresh default False;
   end;
 
 
@@ -1456,10 +1461,7 @@ begin
     InitDefaultIndexes;
     InitUserIndexes;
     If FIndexName<>'' then
-      FCurrentIndexDef:=TBufDatasetIndex(FIndexes.Find(FIndexName))
-    else if (FIndexFieldNames<>'') then
-      BuildCustomIndex;
-
+      FCurrentIndexDef:=TBufDatasetIndex(FIndexes.Find(FIndexName));
     CalcRecordSize;
 
     FBRecordCount := 0;
@@ -1468,6 +1470,9 @@ begin
       if Assigned(BufIndexdefs[IndexNr]) then
         With BufIndexes[IndexNr] do
           InitialiseSpareRecord(IntAllocRecordBuffer);
+
+    if (FIndexName = '') and (FIndexFieldNames<>'') then
+      BuildCustomIndex;
 
     FAllPacketsFetched := False;
 
@@ -2954,6 +2959,7 @@ Const
 begin
   Result.Async:=False;
   Result.Response:=rrApply;
+  Result.HadError:=False;
   // If the record is first inserted and afterwards deleted, do nothing
   if ((aUpdate.UpdateKind=ukDelete) and not (assigned(aUpdate.OldValuesBuffer))) then
     exit;
@@ -3486,7 +3492,7 @@ begin
       if not Field.GetData(@bufblob) then Exit;
     bmWrite:
       begin
-      if not (State in [dsEdit, dsInsert, dsFilter, dsCalcFields]) then
+      if not (State in [dsEdit, dsInsert, dsFilter, dsCalcFields, dsRefreshFields]) then
         DatabaseErrorFmt(SNotEditing, [Name], Self);
       if Field.ReadOnly and not (State in [dsSetKey, dsFilter]) then
         DatabaseErrorFmt(SReadOnlyField, [Field.DisplayName]);
@@ -4062,6 +4068,17 @@ begin
   finally
     EnableControls;
   end;
+end;
+
+{ TBufDataset }
+
+procedure TBufDataset.InternalRefresh;
+begin
+  if (DataBase = nil) and (FFileName = '') then
+    DatabaseError(SErrNoInMemoryRefresh, Self);
+  if (ChangeCount>0) and FCancelChangesOnRefresh then
+    CancelUpdates;
+  inherited;
 end;
 
 { TArrayBufIndex }
