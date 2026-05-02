@@ -44,7 +44,7 @@ interface
 
 uses
     RtlConsts, Classes, SysUtils, Generics.MemoryExpanders, Generics.Defaults,
-    Generics.Helpers, Generics.Strings;
+    Generics.Helpers, Generics.Strings, Types;
 
 {.$define EXTRA_WARNINGS}
 {.$define ENABLE_METHODS_WITH_TEnumerableWithPointers}
@@ -97,6 +97,8 @@ type
       out ASearchResult: TBinarySearchResult): Boolean; overload;
   end {$ifdef EXTRA_WARNINGS}experimental{$endif}; // will be renamed to TCustomArray (bug #24254)
 
+  { TArrayHelper }
+
   TArrayHelper<T> = class(TCustomArrayHelper<T>)
   private
     type
@@ -114,9 +116,24 @@ type
     class function BinarySearch(const AValues: array of T; const AItem: T;
       out AFoundIndex: SizeInt; const AComparer: IComparer<T>;
       AIndex, ACount: SizeInt): Boolean; override; overload;
+    class function Concat(const Args: array of TArray<T>): TArray<T>; static;
+    class function IndexOf(const Args: array of T; Const aItem : T; const AComparer: IComparer<T>) : SizeInt; overload;
+    class function IndexOf(const Args: array of T; Const aItem : T) : SizeInt; overload;
+    class function FirstIndexOf(const Args: array of T; const aItem: T; const AComparer: IComparer<T>): SizeInt; overload;
+    class function FirstIndexOf(const Args: array of T; const aItem: T): SizeInt; overload;
+    class function LastIndexOf(const Args: array of T; Const aItem : T; const AComparer: IComparer<T>) : SizeInt; overload;
+    class function LastIndexOf(const Args: array of T; Const aItem : T) : SizeInt; overload;
+    class function Min(const Args: array of T; const AComparer: IComparer<T>; const aDefault : T) : T; overload;
+    class function Min(const Args: array of T; const aDefault : T) : T; overload;
+    class function Max(const Args: array of T; const AComparer: IComparer<T>; const aDefault : T) : T; overload;
+    class function Max(const Args: array of T; const aDefault : T) : T; overload;
+    class procedure Copy(const aSource: array of T; var aDestination: array of T; aCount: NativeInt); overload;
+    class procedure Copy(const aSource: array of T; var aDestination: array of T; aSourceIndex, aDestIndex, aCount: SizeInt); overload;
+    class procedure Reverse(const aSource: Tarray<T>; var aTarget : TArray<T>);
+    class function Contains(const Args: array of T; const aItem: T; const AComparer: IComparer<T>) : Boolean;
   end {$ifdef EXTRA_WARNINGS}experimental{$endif}; // will be renamed to TArray (bug #24254)
 
-  TCollectionNotification = (cnAdded, cnRemoved, cnExtracted);
+  TCollectionNotification = (cnAdding, cnAdded, cnDeleting, cnRemoved, cnExtracting,  cnExtracted);
   TCollectionNotifyEvent<T> = procedure(ASender: TObject; const AItem: T; AAction: TCollectionNotification)
     of object;
 
@@ -125,7 +142,7 @@ type
   TEnumerator<T> = class abstract
   protected
     function DoGetCurrent: T; virtual; abstract;
-    function DoMoveNext: boolean; virtual; abstract;
+    function DoMoveNext: boolean; virtual;
   public
     property Current: T read DoGetCurrent;
     function MoveNext: boolean;
@@ -258,6 +275,7 @@ type
     constructor Create; overload;
     constructor Create(const AComparer: IComparer<T>); overload;
     constructor Create(ACollection: TEnumerable<T>); overload;
+    constructor Create(aValues : Array of T); overload;
     {$IFDEF ENABLE_METHODS_WITH_TEnumerableWithPointers}
     constructor Create(ACollection: TEnumerableWithPointers<T>); overload;
     {$ENDIF}
@@ -280,6 +298,7 @@ type
     {$ENDIF}
 
     function Remove(const AValue: T): SizeInt;
+    function RemoveItem(const Value: T; Direction: TDirection): SizeInt;
     procedure Delete(AIndex: SizeInt); inline;
     procedure DeleteRange(AIndex, ACount: SizeInt);
     function ExtractIndex(const AIndex: SizeInt): T; overload;
@@ -561,6 +580,7 @@ type
       function DoGetCurrent: PT; override;
     public
       constructor Create(AHashSet: THashSet<T>);
+      destructor Destroy; override;
     end;
   protected
     function GetPtrEnumerator: TEnumerator<PT>; override;
@@ -869,6 +889,7 @@ type
       function DoGetCurrent: PT; override;
     public
       constructor Create(ASortedSet: TSortedSet<T>);
+      destructor Destroy; override;
     end;
   protected
     function GetPtrEnumerator: TEnumerator<PT>; override;
@@ -932,6 +953,7 @@ type
       function DoGetCurrent: PT; override;
     public
       constructor Create(ASortedHashSet: TSortedHashSet<T>);
+      destructor Destroy; override;
     end;
   protected
     function GetPtrEnumerator: TEnumerator<PT>; override;
@@ -953,11 +975,33 @@ type
   end;
 
 function InCircularRange(ABottom, AItem, ATop: SizeInt): Boolean;
+procedure ErrorArgumentOutOfRange; overload;
+procedure ErrorArgumentOutOfRange(aIndex, aMaxIndex: SizeInt; aListObj: TObject); overload;
+procedure ErrorArgumentOutOfRange(aIndex, aMaxIndex: SizeInt); overload;
 
 var
   EmptyRecord: TEmptyRecord;
 
 implementation
+
+
+procedure ErrorArgumentOutOfRange;
+
+begin
+  raise EArgumentOutOfRangeException.Create(SArgumentOutOfRange);
+end;
+
+procedure ErrorArgumentOutOfRange(aIndex, aMaxIndex: SizeInt; aListObj: TObject); overload;
+
+begin
+  raise EArgumentOutOfRangeException.Create(ListIndexErrorMsg(aIndex,aMaxIndex,aListObj));
+end;
+
+procedure ErrorArgumentOutOfRange(aIndex, aMaxIndex: SizeInt); overload;
+
+begin
+  raise EArgumentOutOfRangeException.Create(ListIndexErrorMsg(aIndex,aMaxIndex,''));
+end;
 
 function InCircularRange(ABottom, AItem, ATop: SizeInt): Boolean;
 begin
@@ -1240,6 +1284,168 @@ begin
   end;
 end;
 
+
+class procedure TArrayHelper<T>.Copy(const aSource: array of T; var aDestination: array of T; aCount: NativeInt);
+begin
+  Copy(aSource,aDestination,0,0,aCount);
+end;
+
+class procedure TArrayHelper<T>.Copy(const aSource: array of T; var aDestination: array of T; aSourceIndex, aDestIndex, aCount: SizeInt);
+
+var
+  I : Integer;
+
+begin
+  if (Length(aSource)>0) and (Length(aDestination)>0) and ((@aSource[0]) = (@aDestination[0]))  then
+    raise EArgumentException.Create(SErrSameArrays);
+  if (aCount<0) or
+     (aCount>(Length(aSource)-aSourceIndex)) or
+     (aCount>(Length(aDestination)-aDestIndex)) then
+    ErrorArgumentOutOfRange;
+
+  if IsManagedType(T) then
+    begin
+    // maybe this can be optimized too ?
+    For I:=0 to aCount-1 do
+      aDestination[aDestIndex+i]:=aSource[aSourceIndex+i];
+    end
+  else
+    Move(Pointer(@aSource[aSourceIndex])^, Pointer(@aDestination[aDestIndex])^, SizeOf(T)*aCount);
+end;
+
+class procedure TArrayHelper<T>.Reverse(const aSource: Tarray<T>; var aTarget: TArray<T>);
+
+var
+  lTmp : Array of T; // in case aSource=aTarget
+  i,j, lLen : SizeInt;
+begin
+  lLen:=Length(aSource);
+  SetLength(lTmp,lLen);
+  j:=lLen-1;
+  For I:=0 to lLen-1 do
+    begin
+    lTmp[j]:=aSource[i];
+    Dec(j);
+    end;
+  aTarget:=lTmp;
+end;
+
+
+class function TArrayHelper<T>.Contains(const Args: array of T; const aItem: T; const AComparer: IComparer<T>): Boolean;
+begin
+  Result:=IndexOf(Args,aItem,aComparer)<>-1;
+end;
+
+class function TArrayHelper<T>.Concat(const Args: array of TArray<T>): TArray<T>;
+
+var
+  TotalLen: SizeInt;
+  CurLen,Dest,i: SizeInt;
+
+begin
+  Result:=Nil;
+  TotalLen:=0;
+  for i:=0 to Length(Args)-1 do
+    Inc(TotalLen,Length(Args[i]));
+  SetLength(Result,TotalLen);
+  Dest:=0;
+  for i:=0 to Length(Args)-1 do
+    begin
+    CurLen:=Length(Args[i]);
+    if CurLen>0 then
+      begin
+      Copy(Args[i],Result,0,Dest,CurLen);
+      Inc(Dest,CurLen);
+      end;
+    end;
+end;
+
+class function TArrayHelper<T>.IndexOf(const Args: array of T; const aItem: T; const AComparer: IComparer<T>): SizeInt;
+begin
+  Result:=FirstIndexOf(Args,aItem,aComparer);
+end;
+
+class function TArrayHelper<T>.IndexOf(const Args: array of T; const aItem: T): SizeInt;
+begin
+  Result:=FirstIndexOf(Args,aItem,TComparer<T>.Default);
+end;
+
+class function TArrayHelper<T>.FirstIndexOf(const Args: array of T; const aItem: T; const AComparer: IComparer<T>): SizeInt;
+var
+  Len : SizeInt;
+begin
+  Result:=0;
+  Len:=Length(Args);
+  While (Result<Len) and (aComparer.Compare(Args[Result],aItem)<>0) do
+    Inc(Result);
+  if Result>=Len then
+    Result:=-1;
+end;
+
+class function TArrayHelper<T>.FirstIndexOf(const Args: array of T; const aItem: T): SizeInt;
+begin
+  Result:=FirstIndexOf(Args,aItem,TComparer<T>.Default);
+end;
+
+class function TArrayHelper<T>.LastIndexOf(const Args: array of T; const aItem: T; const AComparer: IComparer<T>): SizeInt;
+
+begin
+  Result:=Length(Args)-1;
+  While (Result>=0) and (aComparer.Compare(Args[Result],aItem)<>0) do
+    Dec(Result);
+end;
+
+class function TArrayHelper<T>.LastIndexOf(const Args: array of T; const aItem: T): SizeInt;
+begin
+  Result:=LastIndexOf(Args,aItem,TComparer<T>.Default);
+end;
+
+class function TArrayHelper<T>.Min(const Args: array of T; const AComparer: IComparer<T>; const aDefault: T): T;
+var
+  Len : SizeInt;
+begin
+  Len:=Length(Args)-1;
+  if Len>=0 then
+    Result:=Args[Len]
+  else
+    Result:=aDefault;
+  Dec(Len);
+  While Len>=0 do
+    begin
+    if aComparer.Compare(Result,Args[Len])>0 then
+      Result:=Args[Len];
+    Dec(Len);
+    end;
+end;
+
+class function TArrayHelper<T>.Min(const Args: array of T; const aDefault: T): T;
+begin
+  Result:=Min(Args,TComparer<T>.default,aDefault);
+end;
+
+class function TArrayHelper<T>.Max(const Args: array of T; const AComparer: IComparer<T>; const aDefault: T): T;
+var
+  Len : SizeInt;
+begin
+  Len:=Length(Args)-1;
+  if Len>=0 then
+    Result:=Args[Len]
+  else
+    Result:=aDefault;
+  Dec(Len);
+  While Len>=0 do
+    begin
+    if aComparer.Compare(Result,Args[Len])<0 then
+      Result:=Args[Len];
+    Dec(Len);
+    end;
+end;
+
+class function TArrayHelper<T>.Max(const Args: array of T; const aDefault: T): T;
+begin
+  Result:=Max(Args,TComparer<T>.Default,aDefault);
+end;
+
 class function TArrayHelper<T>.BinarySearch(const AValues: array of T; const AItem: T;
   out AFoundIndex: SizeInt; const AComparer: IComparer<T>;
   AIndex, ACount: SizeInt): Boolean;
@@ -1294,6 +1500,11 @@ begin
 end;
 
 { TEnumerator<T> }
+
+function TEnumerator<T>.DoMoveNext: boolean;
+begin
+  Result:=False;
+end;
 
 function TEnumerator<T>.MoveNext: boolean;
 begin
@@ -1525,6 +1736,16 @@ begin
     Add(LItem);
 end;
 
+constructor TList<T>.Create(aValues : Array of T);
+
+var
+  LItem: T;
+begin
+  Create;
+  for LItem in aValues do
+    Add(LItem);
+end;
+
 {$IFDEF ENABLE_METHODS_WITH_TEnumerableWithPointers}
 constructor TList<T>.Create(ACollection: TEnumerableWithPointers<T>);
 var
@@ -1730,6 +1951,19 @@ begin
   Result := IndexOf(AValue);
   if Result >= 0 then
     DoRemove(Result, cnRemoved);
+end;
+
+function TList<T>.RemoveItem(const Value: T; Direction: TDirection): SizeInt;
+
+begin
+  if Direction=TDirection.FromBeginning then
+    Result:=Remove(Value)
+  else
+    begin
+    Result:=LastIndexOf(Value);
+    if Result>=0 then
+      DoRemove(Result, cnRemoved);
+    end;
 end;
 
 procedure TList<T>.Delete(AIndex: SizeInt);
@@ -2667,6 +2901,12 @@ begin
   FEnumerator := AHashSet.FInternalDictionary.Keys.Ptr^.GetEnumerator;
 end;
 
+destructor THashSet<T>.TPointersEnumerator.Destroy;
+begin
+  FEnumerator.Free;
+  inherited;
+end;
+
 { THashSet<T> }
 
 procedure THashSet<T>.InternalDictionaryNotify(ASender: TObject; const AItem: T; AAction: TCollectionNotification);
@@ -3251,7 +3491,7 @@ end;
 
 procedure TCustomAVLTreeMap<TREE_CONSTRAINTS>.NodeNotify(ANode: PNode; ACollectionNotification: TCollectionNotification; ADispose: boolean);
 begin
-  if Assigned(FOnValueNotify) then
+  if Assigned(FOnNodeNotify) then
     FOnNodeNotify(Self, ANode, ACollectionNotification, ADispose);
   KeyNotify(ANode.Key, ACollectionNotification);
   ValueNotify(ANode.Value, ACollectionNotification);
@@ -4016,6 +4256,12 @@ begin
   FEnumerator := ASortedSet.FInternalTree.Keys.Ptr^.GetEnumerator;
 end;
 
+destructor TSortedSet<T>.TPointersEnumerator.Destroy;
+begin
+  FEnumerator.Free;
+  inherited;
+end;
+
 { TSortedSet<T> }
 
 procedure TSortedSet<T>.InternalAVLTreeNotify(ASender: TObject; const AItem: T; AAction: TCollectionNotification);
@@ -4196,6 +4442,12 @@ end;
 constructor TSortedHashSet<T>.TPointersEnumerator.Create(ASortedHashSet: TSortedHashSet<T>);
 begin
   FEnumerator := ASortedHashSet.FInternalTree.Keys.Ptr^.GetEnumerator;
+end;
+
+destructor TSortedHashSet<T>.TPointersEnumerator.Destroy;
+begin
+  FEnumerator.Free;
+  inherited;
 end;
 
 { TSortedHashSet<T> }
