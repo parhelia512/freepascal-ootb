@@ -2,28 +2,15 @@ unit xlib;
 interface
 {$mode objfpc}
 uses
-  ctypes, x;
+  ctypes,x;
 {$define MACROS}
 
 {$ifndef os2}
   {$LinkLib c}
-  
- {$ifdef darwin}
-  {$LinkLib libX11.dylib}
-   const
-   libX11='libX11.dylib';
- {$else}
-  {$if defined(netbsd) or defined(openbsd) or defined(dragonfly)}
-   {$LinkLib libX11.so}
-   const
-   libX11='libX11.so';
-    {$else} 
-    {$LinkLib libX11.so.6}
-    const
-    libX11='libX11.so.6';
-    {$endif}
-   {$endif}
- {$else}
+  {$LinkLib X11}
+const
+  libX11='X11';
+{$else}
 const
   libX11='X11';
 {$endif}

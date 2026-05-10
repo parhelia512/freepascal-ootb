@@ -1,3 +1,4 @@
+{%MainUnit classes.pp}
 {
     This file is part of the Free Component Library (FCL)
     Copyright (c) 1999-2000 by the Free Pascal development team
@@ -212,6 +213,19 @@ var
 begin
   r.d:=ReadDWord;
   Result:=r.s;
+end;
+
+function TBinaryObjectReader.ReadDouble: Double;
+var
+  r: record
+    case byte of
+      1: (q: qword);
+      2: (d: double);
+  end;
+
+begin
+  r.q:=ReadQWord;
+  Result:=R.d;
 end;
 {$endif}
 
@@ -1080,6 +1094,30 @@ begin
     Result := ReadInt64;
 end;
 
+function TReader.ReadDouble: Double;
+begin
+  // We have no vaDouble 
+  Case FDriver.NextValue of
+  vaExtended:
+    begin
+    ReadValue;
+    Result := FDriver.ReadFloat
+    end;
+  vaSingle:
+    begin
+    ReadValue;
+    Result := FDriver.ReadSingle
+    end;
+  vaDouble:
+    begin
+    ReadValue;
+    Result := FDriver.ReadDouble
+    end;
+  else
+    Result := ReadInt64;
+  end
+end;
+
 procedure TReader.ReadSignature;
 begin
   FDriver.ReadSignature;
@@ -1094,6 +1132,7 @@ begin
   end else
     Result := ReadInteger;
 end;
+
 {$endif}
 
 function TReader.ReadCurrency: Currency;
@@ -1810,7 +1849,7 @@ begin
   Result:=FindInFieldTable(Root);
   
   if (Result=nil) and assigned(LookupRoot) and (LookupRoot<>Root) then
-    FindInFieldTable(LookupRoot);
+    Result:=FindInFieldTable(LookupRoot);
 
   if (Result=nil) then begin
     PersistentClass := GetClass(AClassName);
@@ -1822,7 +1861,7 @@ begin
     OnFindComponentClass(Self, AClassName, Result);
 
   if (Result=nil) or (not Result.InheritsFrom(TComponent)) then
-    raise EClassNotFound.CreateFmt(SClassNotFound, [AClassName]);
+    raise EClassNotFound.CreateFmt(SNoFieldOfClassIn, [AClassName, Root.ClassName]);
 end;
 
 

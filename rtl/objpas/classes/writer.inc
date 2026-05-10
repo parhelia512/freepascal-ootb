@@ -1,3 +1,4 @@
+{%MainUnit classes.pp}
 {
     This file is part of the Free Component Library (FCL)
     Copyright (c) 1999-2000 by the Free Pascal development team
@@ -214,17 +215,12 @@ end;
 
 procedure TBinaryObjectWriter.WriteIdent(const Ident: string);
 begin
-  { Check if Ident is a special identifier before trying to just write
-    Ident directly }
-  if UpperCase(Ident) = 'NIL' then
-    WriteValue(vaNil)
-  else if UpperCase(Ident) = 'FALSE' then
-    WriteValue(vaFalse)
-  else if UpperCase(Ident) = 'TRUE' then
-    WriteValue(vaTrue)
-  else if UpperCase(Ident) = 'NULL' then
-    WriteValue(vaNull) else
-  begin
+  Case UpperCase(Ident) of
+    'NIL'   : WriteValue(vaNil);
+    'FALSE' : WriteValue(vaFalse);
+    'TRUE'  : WriteValue(vaTrue);
+    'NULL'  : WriteValue(vaNull);
+  else
     WriteValue(vaIdent);
     WriteStr(Ident);
   end;
@@ -898,8 +894,9 @@ begin
     if PropType^.Kind<>tkClass then
       exit;
     ObjValue := TObject(GetObjectProp(Instance, PropInfo));
-    if not ObjValue.InheritsFrom(TComponent) or
-       not (csSubComponent in TComponent(ObjValue).ComponentStyle) then
+    if not (assigned(ObjValue) and
+            ObjValue.InheritsFrom(TComponent) and
+            (csSubComponent in TComponent(ObjValue).ComponentStyle)) then
       exit;
   end;
 
