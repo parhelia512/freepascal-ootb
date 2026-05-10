@@ -13,14 +13,14 @@ uses
    const
    libX11='libX11.dylib';
  {$else}
-  {$if defined(netbsd) or defined(openbsd) or defined(dragonfly)}
-   {$LinkLib libX11.so}
-   const
-   libX11='libX11.so';
-    {$else}
+  {$if defined(linux)}
    {$LinkLib libX11.so.6}
    const
    libX11='libX11.so.6';
+    {$else}
+   {$LinkLib libX11.so}
+   const
+   libX11='libX11.so';
   {$endif}
    {$endif}
  {$else}

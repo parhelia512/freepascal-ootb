@@ -3,15 +3,26 @@ interface
 uses
   ctypes,x,xlib;
 
-{$ifndef os2}
-  {$LinkLib c}
-  {$LinkLib libX11.so.6} 
-  {$LinkLib Xext}
+{$if defined(darwin)}
+{$LinkLib libX11.dylib}
+const
+  libX11='X11';
+{$else}
+{$if defined(os2)}
+const
+  libX11='X11';
+{$else}
+{$LinkLib c}
+{$if defined(linux)}  
+   {$LinkLib libX11.so.6}
 const
   libX11='libX11.so.6';
 {$else}
+  {$LinkLib libX11.so}
 const
-  libX11='X11';
+  libX11='libX11.so';
+{$endif}
+{$endif}
 {$endif}
 
 {
