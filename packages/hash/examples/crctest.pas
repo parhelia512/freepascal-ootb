@@ -11,8 +11,8 @@ const
   testseq1: RawByteString = 'MNIIQGNLVGTGLKIGIVVGRFNDFITSKLLSGAEDALLRHGVDTNDIDVAWVPGAFEIPFAAKKMAETKKYDAIITLGTVIRGATTSYDYVCNEAAKGIAQAANTTGVPVIFGIVTTENIEQAIERAGTKAGNKGVDCAVSAIEMANLNRSFE';
   testseq2: RawByteString = 'MNIIQGNLVGTGLKIGIVVGRFNDFITSKLLSGAEDALLRHGVDTNDIDVAWVPGAFEIPFAAKKMAETKKYDAIITLGDVIRGATTHYDYVCNEAAKGIAQAANTTGVPVIFGIVTTENIEQAIERAGTKAGNKGVDCAVSAIEMANLNRSFE';
 
-  test1_crc128: u128 = (lo:14444300186948028230; hi:0);
-  test2_crc128: u128 = (lo:3310614217963326015; hi:0);
+  test1_crc128: u128 = (lo:7787709990548801016; hi:8484981956151821693);
+  test2_crc128: u128 = (lo:17574279593289983859; hi:10166839289973635932);
   test1_crc64: qword = 14444300186948028230;
   test2_crc64: qword = 3310614217963326015;
   test1_crc32: longword = 3405150022;
@@ -21,7 +21,7 @@ const
 
 function IntToStr128(v: u128): RawByteString;
 begin
-  result := 'todo';
+  result := '$'+hexstr(v.hi,16)+hexstr(v.lo,16);
 end;
 
 
@@ -36,7 +36,10 @@ begin
   if crc=result then
     writeln('passed')
   else
-    writeln('failed (got=',crc,',expected=',result,')');
+    begin
+      writeln('failed (got=',crc,',expected=',result,')');
+      halt(1);
+    end;
 end;
 
 procedure perform_crc64(const name, testcase: RawByteString; result: qword);
@@ -50,7 +53,10 @@ begin
   if crc=result then
     writeln('passed')
   else
-    writeln('failed (got=',crc,',expected=',result,')');
+    begin
+      writeln('failed (got=',crc,',expected=',result,')');
+      halt(1);
+    end;
 end;
 
 procedure perform_crc128(const name, testcase: RawByteString; result: u128);
@@ -64,7 +70,10 @@ begin
   if crc=result then
     writeln('passed')
   else
-    writeln('failed (got=',IntToStr128(crc),',expected=',IntToStr128(result),')');
+    begin
+      writeln('failed (got=',IntToStr128(crc),',expected=',IntToStr128(result),')');
+      halt(1);
+    end;
 end;
 
 
