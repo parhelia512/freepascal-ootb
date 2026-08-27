@@ -1,6 +1,6 @@
 {
     This file is part of the Free Pascal run time library.
-    Copyright (c) 1993-2015 by Florian Klaempfl
+    Copyright (c) 1993-2026 by Florian Klaempfl
     member of the Free Pascal development team
 
     This is the install program for the DOS and OS/2 versions of Free Pascal
@@ -93,8 +93,8 @@ program install;
      WHTMLScn,insthelp;
 
   const
-     installerversion='3.2.3';
-     installercopyright='Copyright (c) 1993-2021 Florian Klaempfl';
+     installerversion='3.2.4-rc2';
+     installercopyright='Copyright (c) 1993-2026 Florian Klaempfl';
 
 
      maxpacks=20;
